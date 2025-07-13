@@ -1,61 +1,37 @@
 // src/components/NavbarClient.tsx
-// Este é o teu Client Component da Navbar
-'use client'; // <-- MUITO IMPORTANTE: tem de ser a primeira linha!
-
-import {
-  Navbar,
-  DarkThemeToggle,
-  NavbarBrand,
-  NavbarToggle,
-  NavbarCollapse,
-  NavbarLink
-} from 'flowbite-react';
-import Link from 'next/link';
-import Image from 'next/image'; // <-- Importa o componente Image do Next.js
+// CORREÇÃO AQUI: Importar os subcomponentes da Navbar diretamente
+import { Navbar, NavbarBrand, NavbarToggle, NavbarCollapse, NavbarLink } from 'flowbite-react';
+import Link from 'next/link'; // <--- GARANTE QUE ESTA IMPORTAÇÃO ESTÁ PRESENTE E CORRETA
 
 interface NavLink {
-  id: number;
-  title: string;
-  path: string;
-  order?: number;
+    id: number;
+    title: string;
+    path: string;
+    order?: number;
 }
 
-interface NavbarClientProps {
-  navLinks: NavLink[];
-}
-
-export default function NavbarClient({ navLinks }: NavbarClientProps) {
+export default function NavbarClient({ navLinks }: { navLinks: NavLink[] }) {
   return (
-    <Navbar fluid rounded className="py-4 bg-primary-brand dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-      <NavbarBrand
-        as={Link}
-        href="/"
-      >
-        <Image
-          src="/nexuseventos.png" // Caminho para o teu logótipo na pasta public
-          alt="Nexus Eventos Logo"
-          width={32} // Define uma largura para o logótipo (ajusta conforme necessário)
-          height={32} // Define uma altura para o logótipo (ajusta conforme necessário)
-          className="mr-3 h-6 sm:h-9" // Classes Tailwind para tamanho e margem
-        />
-        <span className="self-center whitespace-nowrap text-xl font-semibold text-white dark:text-white">
-          Nexus Eventos
-        </span>
+    // Usa 'Navbar' diretamente agora, não 'FlowbiteNavbar'
+    <Navbar fluid rounded className="bg-[var(--accent-color)] text-[var(--background)] p-4 shadow-md">
+      {/* Usa 'NavbarBrand' diretamente */}
+      <NavbarBrand as={Link} href="/">
+        {/* <img src="/favicon.svg" className="mr-3 h-6 sm:h-9" alt="Flowbite React Logo" /> */}
+        <span className="self-center whitespace-nowrap text-xl font-semibold dark:text-white">Nexus Events</span>
       </NavbarBrand>
-      <div className="flex md:order-2 items-center space-x-3">
-        <DarkThemeToggle className="text-white dark:text-gray-400 hover:bg-primary-brand/80 dark:hover:bg-gray-700" />
-        <NavbarToggle />
-      </div>
+      {/* Usa 'NavbarToggle' diretamente */}
+      <NavbarToggle />
+      {/* Usa 'NavbarCollapse' diretamente */}
       <NavbarCollapse>
         {navLinks
-          .sort((a, b) => (a.order || 0) - (b.order || 0))
+          .sort((a, b) => (a.order || 0) - (b.order || 0)) // Ordena os links
           .map((link) => (
+            // Usa 'NavbarLink' diretamente
             <NavbarLink
               key={link.id}
               as={Link}
               href={link.path}
-              active={window.location.pathname === link.path}
-              className="text-white md:hover:text-accent-brand dark:text-gray-300 dark:hover:text-white md:dark:hover:bg-transparent"
+              className="text-[var(--background)] hover:text-[var(--secondary-accent)] dark:text-[var(--foreground)] dark:hover:text-[var(--secondary-accent)]"
             >
               {link.title}
             </NavbarLink>

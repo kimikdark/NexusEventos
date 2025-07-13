@@ -3,8 +3,13 @@
 @source "../../.flowbite-react/class-list.json";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* MODO CLARO */
+  --background: #F0FFF4; /* Um verde-menta muito claro, quase branco */
+  --foreground: #2C3E50; /* Azul escuro suave para o texto, moderno */
+
+  /* Podes adicionar mais variáveis para cores de destaque */
+  --accent-color: #8A2BE2; /* Roxo vibrante */
+  --secondary-accent: #20B2AA; /* Verde-Água */
 }
 
 @theme inline {
@@ -16,13 +21,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* MODO ESCURO */
+    --background: #1A202C; /* Um cinzento muito escuro, quase preto */
+    --foreground: #E2E8F0; /* Cinzento claro para o texto no modo escuro */
+
+    /* Variáveis de destaque para o modo escuro */
+    --accent-color: #BB86FC;
+    --secondary-accent: #00BFA5;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--background); /* Estas linhas usam as variáveis que definiste */
+  color: var(--foreground);     /* para o fundo e o texto base do site */
   font-family: Arial, Helvetica, sans-serif;
 }

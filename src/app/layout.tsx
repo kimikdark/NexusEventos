@@ -21,8 +21,9 @@ export default function RootLayout({
       <head>
         <ThemeModeScript />
       </head>
+      {/* CORREÇÃO AQUI: Removemos as classes de cor Tailwind do <body> */}
+      {/* Agora, as cores de fundo e texto do body serão controladas apenas pelo global.css */}
       <body className="flex flex-col min-h-screen">
-        {/* E estas linhas aqui também: */}
         <AppNavbar />
 
         <main className="flex-grow container mx-auto px-4 py-8">

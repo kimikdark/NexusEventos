@@ -28,9 +28,9 @@ async function getNavLinks(): Promise<NavLink[]> {
     if (data && Array.isArray(data.data)) {
       return data.data.map((item: any) => ({
         id: item.id,
-        // CORREÇÃO AQUI: Aceder diretamente aos campos, não via item.attributes
-        title: item.title, 
-        path: item.path,
+        // CORREÇÃO JÁ APLICADA: Aceder diretamente aos campos, não via item.attributes
+        title: item.title, // Já está correto
+        path: item.path, // Já está correto
         order: item.order || 0, // Garante que order é sempre um número
       }));
     }
