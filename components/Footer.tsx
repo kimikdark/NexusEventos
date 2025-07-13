@@ -1,7 +1,14 @@
 // src/components/Footer.tsx
-'use client'; // <-- MUITO IMPORTANTE: tem de ser a primeira linha!
+'use client';
 
-import { Footer } from 'flowbite-react';
+import {
+  Footer,
+  FooterBrand,
+  FooterLinkGroup,
+  FooterLink,
+  FooterDivider,
+  FooterCopyright
+} from 'flowbite-react';
 import Link from 'next/link';
 
 export default function AppFooter() {
@@ -9,33 +16,36 @@ export default function AppFooter() {
     <Footer container className="mt-auto bg-gray-900 dark:bg-gray-900 text-white dark:text-gray-300 p-6">
       <div className="w-full text-center">
         <div className="w-full justify-between sm:flex sm:items-center sm:justify-between">
-          <Footer.Brand
-            as={Link}
+          {/* CORREÇÃO AQUI: ADICIONAMOS A PROPRIEDADE 'src' */}
+          <FooterBrand
             href="/"
+            src="https://flowbite.com/docs-assets/logo.svg" // <-- ADICIONA ESTA LINHA COM O URL DE UM LOGÓTIPO
+            alt="Nexus Eventos Logo" // É boa prática adicionar um alt text
             name="Nexus Eventos"
             className="text-white"
           >
-            <span className="text-xl font-semibold whitespace-nowrap text-white">
+            {/* O texto "Nexus Eventos" aqui pode ser o nome visível ao lado do logótipo */}
+            <span className="self-center whitespace-nowrap text-xl font-semibold text-white">
               Nexus Eventos
             </span>
-          </Footer.Brand>
-          <Footer.LinkGroup className="flex flex-wrap items-center mt-3 text-sm font-medium text-white dark:text-gray-300 sm:mt-0">
-            <Footer.Link as={Link} href="#">
+          </FooterBrand>
+          <FooterLinkGroup className="flex flex-wrap items-center mt-3 text-sm font-medium text-white dark:text-gray-300 sm:mt-0">
+            <FooterLink as={Link} href="#">
               Sobre
-            </Footer.Link>
-            <Footer.Link as={Link} href="#" className="ml-4">
+            </FooterLink>
+            <FooterLink as={Link} href="#" className="ml-4">
               Política de Privacidade
-            </Footer.Link>
-            <Footer.Link as={Link} href="#" className="ml-4">
+            </FooterLink>
+            <FooterLink as={Link} href="#" className="ml-4">
               Termos & Condições
-            </Footer.Link>
-            <Footer.Link as={Link} href="/contact" className="ml-4">
+            </FooterLink>
+            <FooterLink as={Link} href="/contact" className="ml-4">
               Contacto
-            </Footer.Link>
-          </Footer.LinkGroup>
+            </FooterLink>
+          </FooterLinkGroup>
         </div>
-        <Footer.Divider />
-        <Footer.Copyright href="#" by="Nexus Eventos™" year={new Date().getFullYear()} className="text-white" />
+        <FooterDivider />
+        <FooterCopyright href="#" by="Nexus Eventos™" year={new Date().getFullYear()} className="text-white" />
       </div>
     </Footer>
   );

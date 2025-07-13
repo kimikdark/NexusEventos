@@ -1,32 +1,48 @@
 // src/components/Navbar.tsx
-'use client'; // Necessário para usar componentes interativos do Flowbite React no App Router
+// Este é o teu Server Component da Navbar
+import NavbarClient from './NavbarClient'; // O caminho para o NavbarClient está correto para a tua estrutura
 
-import { Navbar, DarkThemeToggle } from 'flowbite-react';
-import Link from 'next/link';
+interface NavLink {
+  id: number;
+  title: string;
+  path: string;
+  order?: number;
+}
 
-export default function AppNavbar() {
-  return (
-    <Navbar fluid rounded className="py-4 bg-primary-brand dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-      <Navbar.Brand as={Link} href="/">
-        <span className="self-center whitespace-nowrap text-xl font-semibold text-white dark:text-white">
-          Nexus Eventos
-        </span>
-      </Navbar.Brand>
-      <div className="flex md:order-2 items-center space-x-3">
-        <DarkThemeToggle className="text-white dark:text-gray-400 hover:bg-primary-brand/80 dark:hover:bg-gray-700" />
-        <Navbar.Toggle />
-      </div>
-      <Navbar.Collapse>
-        <Navbar.Link as={Link} href="/" active className="text-white md:hover:text-accent-brand dark:text-gray-300 dark:hover:text-white md:dark:hover:bg-transparent">
-          Home
-        </Navbar.Link>
-        <Navbar.Link as={Link} href="/events" className="text-white md:hover:text-accent-brand dark:text-gray-300 dark:hover:text-white md:dark:hover:bg-transparent">
-          Eventos
-        </Navbar.Link>
-        <Navbar.Link as={Link} href="/contact" className="text-white md:hover:text-accent-brand dark:text-gray-300 dark:hover:text-white md:dark:hover:bg-transparent">
-          Contacto
-        </Navbar.Link>
-      </Navbar.Collapse>
-    </Navbar>
-  );
+// Função para buscar os links de navegação do Strapi
+// Esta função é assíncrona e executa no servidor
+async function getNavLinks(): Promise<NavLink[]> {
+  try {
+    const res = await fetch('http://localhost:1337/api/nav-links?populate=*', {
+      next: { revalidate: 60 } // Revalidar os dados a cada 60 segundos
+    });
+
+    if (!res.ok) {
+      console.error(`Falha ao buscar nav-links: ${res.status} ${res.statusText}`);
+      return []; // Retorna um array vazio em caso de erro na resposta
+    }
+
+    const data = await res.json();
+    // O Strapi geralmente retorna os dados dentro de um objeto 'data'
+    // Mapeia para a estrutura NavLink[]
+    if (data && Array.isArray(data.data)) {
+      return data.data.map((item: any) => ({
+        id: item.id,
+        title: item.attributes.title,
+        path: item.attributes.path,
+        order: item.attributes.order || 0, // Garante que order é sempre um número
+      }));
+    }
+    return []; // Retorna array vazio se a estrutura não for a esperada
+  } catch (error) {
+    console.error("Erro ao buscar nav-links:", error);
+    return []; // Retorna um array vazio em caso de erro de rede ou parsing
+  }
+}
+
+// Este é o teu componente Server principal da Navbar
+export default async function Navbar() {
+  const navLinks = await getNavLinks(); // Aguarda a obtenção dos links
+
+  return <NavbarClient navLinks={navLinks} />; // Passa a prop navLinks para o Client Component
 }
