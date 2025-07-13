@@ -2,7 +2,8 @@
 import './globals.css';
 import { ThemeModeScript } from 'flowbite-react';
 
-import Navbar from '../components/Navbar'; // Este irá importar o teu src/components/Navbar.tsx
+// Garante que estas linhas estão corretas:
+import AppNavbar from '../components/Navbar';
 import AppFooter from '../components/Footer';
 
 export const metadata = {
@@ -21,10 +22,13 @@ export default function RootLayout({
         <ThemeModeScript />
       </head>
       <body className="flex flex-col min-h-screen">
-        <Navbar />
+        {/* E estas linhas aqui também: */}
+        <AppNavbar />
+
         <main className="flex-grow container mx-auto px-4 py-8">
           {children}
         </main>
+
         <AppFooter />
       </body>
     </html>
