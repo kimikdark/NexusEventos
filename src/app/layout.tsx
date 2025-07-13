@@ -1,14 +1,12 @@
 // src/app/layout.tsx
-import './globals.css'; // Mantenha esta linha
-import { ThemeModeScript } from 'flowbite-react'; // Para o Dark Mode
+import './globals.css';
+import { ThemeModeScript } from 'flowbite-react';
 
-// Importa os teus componentes de Header e Footer
-// Vamos criá-los ou reintroduzi-los logo abaixo
-// Ex: import Navbar from '../components/Navbar';
-// Ex: import Footer from '../components/Footer';
+import Navbar from '../components/Navbar'; // Este irá importar o teu src/components/Navbar.tsx
+import AppFooter from '../components/Footer';
 
 export const metadata = {
-  title: 'Nexus Eventos', // O título da tua aplicação
+  title: 'Nexus Eventos',
   description: 'Gestão e listagem de eventos',
 };
 
@@ -18,20 +16,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt" suppressHydrationWarning>
       <head>
-        <ThemeModeScript /> {/* Essencial para o modo escuro */}
+        <ThemeModeScript />
       </head>
-      <body>
-        {/* Aqui podes incluir o teu cabeçalho, se tiveres um componente */}
-        {/* <Navbar /> */}
-
-        <main className="min-h-screen">
-          {children} {/* O conteúdo da tua página atual (home, contact, events) */}
+      <body className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          {children}
         </main>
-
-        {/* Aqui podes incluir o teu rodapé, se tiveres um componente */}
-        {/* <Footer /> */}
+        <AppFooter />
       </body>
     </html>
   );
