@@ -26,8 +26,8 @@
     --foreground: #E2E8F0; /* Cinzento claro para o texto no modo escuro */
 
     /* Variáveis de destaque para o modo escuro */
-    --accent-color: #BB86FC;
-    --secondary-accent: #00BFA5;
+    --accent-color: #2C3E50; /* Laranja vibrante */
+    --secondary-accent: #2C3E50;
   }
 }
 

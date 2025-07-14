@@ -1,8 +1,8 @@
 // src/app/layout.tsx
 import './globals.css';
+import 'flowbite/dist/flowbite.min.css';
 import { ThemeModeScript } from 'flowbite-react';
 
-// Garante que estas linhas estão corretas:
 import AppNavbar from '../components/Navbar';
 import AppFooter from '../components/Footer';
 
@@ -21,12 +21,11 @@ export default function RootLayout({
       <head>
         <ThemeModeScript />
       </head>
-      {/* CORREÇÃO AQUI: Removemos as classes de cor Tailwind do <body> */}
-      {/* Agora, as cores de fundo e texto do body serão controladas apenas pelo global.css */}
       <body className="flex flex-col min-h-screen">
-        <AppNavbar />
+        <AppNavbar /> 
 
-        <main className="flex-grow container mx-auto px-4 py-8">
+        {/* ALTERADO: px-4 para px-8 para mais espaçamento lateral */}
+        <main className="flex-grow container mx-auto px-8 py-8">
           {children}
         </main>
 

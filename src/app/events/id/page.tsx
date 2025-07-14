@@ -1,99 +1,101 @@
 // src/app/events/[id]/page.tsx
-import React from 'react';
 import Image from 'next/image';
-import { HiCalendar, HiLocationMarker } from 'react-icons/hi';
 
-interface Event {
+interface EventDetail {
   id: number;
   title: string;
   description: string;
   date: string;
   location: string;
   imageUrl: string;
-  // Adiciona outras propriedades que tenhas no teu modelo de evento no Strapi
 }
 
-// Função para buscar um único evento do Strapi
-async function getEvent(id: string): Promise<Event | null> {
+async function getEvent(id: string): Promise<EventDetail | null> {
   try {
     const res = await fetch(`http://localhost:1337/api/eventos/${id}?populate=*`, {
-      next: { revalidate: 60 } // Revalidar os dados a cada 60 segundos
+      cache: 'no-store'
     });
 
     if (!res.ok) {
-      // Loga o erro se a resposta não for OK (ex: 404, 500)
-      console.error(`Falha ao buscar evento ${id}: ${res.status} ${res.statusText}`);
-      return null; // Retorna null se não conseguir buscar o evento
+      console.error(`Falha ao buscar evento com ID ${id}:`, res.status, res.statusText);
+      return null;
     }
 
     const data = await res.json();
-    // Verifica a estrutura dos dados retornados pelo Strapi para um único item
-    // O Strapi retorna: { data: { id: ..., attributes: { ... } } }
+
+    // Confirma que data, data.data e data.data.attributes existem
     if (data && data.data && data.data.attributes) {
-      const item = data.data; // O objeto do evento está dentro de 'data'
-      return {
-        id: item.id,
-        title: item.attributes.title,
-        description: item.attributes.description,
-        date: item.attributes.date,
-        location: item.attributes.location,
-        // Certifica-te de que o caminho da imagem está correto.
-        // Se a imagem for um campo media no Strapi, a estrutura é data.attributes.NOME_DO_CAMPO_IMAGEM.data.attributes.url
-        imageUrl: item.attributes.image?.data?.attributes?.url ? `http://localhost:1337${item.attributes.image.data.attributes.url}` : '/placeholder-event.png',
-      };
+        const eventData = data.data.attributes; // Agora eventData contém os atributos
+
+        // Acede ao URL da imagem corretamente (aninhado)
+        const imageUrl = eventData.image?.data?.attributes?.url
+            ? `http://localhost:1337${eventData.image.data.attributes.url}`
+            : '/placeholder-event.png'; // Fallback para uma imagem local
+
+        return {
+            id: data.data.id, // O ID principal ainda está em data.data.id
+            title: eventData.title || 'Evento sem título',
+            description: eventData.description || 'Sem descrição.',
+            date: eventData.date || 'Data não definida',
+            location: eventData.location || 'Local não definido',
+            imageUrl: imageUrl,
+        };
     }
-    console.warn(`Dados do evento ${id} em formato inesperado:`, data);
-    return null; // Retorna null se a estrutura dos dados for inesperada
+    return null;
+
   } catch (error) {
-    console.error(`Erro ao buscar evento ${id}:`, error);
-    return null; // Retorna null em caso de exceção (ex: erro de rede)
+    console.error('Erro de rede ou parsing ao buscar evento:', error);
+    return null;
   }
 }
 
-interface EventDetailsPageProps {
-  params: { id: string }; // O id do evento virá dos parâmetros da URL
-}
+export default async function EventDetailPage({ params }: { params: { id: string } }) {
+  const event = await getEvent(params.id);
 
-export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
-  const event = await getEvent(params.id); // Chama a função para buscar o evento
-
-  // Se o evento não for encontrado ou houver erro, exibe uma mensagem
   if (!event) {
     return (
-      <div className="text-center py-10">
-        <h1 className="text-3xl font-bold text-red-600 dark:text-red-400">Evento Não Encontrado</h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">O evento que procuras pode não existir ou ter sido removido.</p>
-      </div>
+      <section className="py-12 px-4 max-w-4xl mx-auto text-center text-white">
+        <h1 className="text-4xl font-extrabold mb-4">Evento Não Encontrado</h1>
+        <p className="text-lg">Pedimos desculpa, mas o evento que procura não existe ou não está disponível.</p>
+      </section>
     );
   }
 
-  // Se o evento for encontrado, exibe os detalhes
   return (
-    <section className="event-details py-8 max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
-      <div className="relative w-full h-80 sm:h-96">
-        <Image
-          src={event.imageUrl}
-          alt={event.title}
-          fill
-          sizes="100vw"
-          style={{ objectFit: 'cover' }}
-          className="rounded-t-lg"
-        />
+    <section className="event-detail py-12 px-4 max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+      <div className="text-center mb-8">
+        <h1 className="text-5xl font-extrabold text-gray-800 dark:text-white mb-4">{event.title}</h1>
+        {event.imageUrl && (
+          <div className="relative w-full h-80 overflow-hidden rounded-md mx-auto mb-6">
+            <Image
+              src={event.imageUrl}
+              alt={event.title}
+              fill
+              style={{ objectFit: 'cover' }}
+              className="rounded-md"
+            />
+          </div>
+        )}
       </div>
-      <div className="p-6">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{event.title}</h1>
-        <div className="flex items-center text-gray-600 dark:text-gray-400 mb-2">
-          <HiCalendar className="mr-2 h-6 w-6" />
-          <span className="text-lg">{new Date(event.date).toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-        <div className="flex items-center text-gray-600 dark:text-gray-400 mb-4">
-          <HiLocationMarker className="mr-2 h-6 w-6" />
-          <span className="text-lg">{event.location}</span>
-        </div>
-        <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg whitespace-pre-line">
-          {event.description}
+      <div className="text-gray-700 dark:text-gray-300 space-y-4">
+        <p className="text-lg leading-relaxed">{event.description}</p>
+        <p className="flex items-center text-md">
+          <svg className="w-5 h-5 mr-2 text-[var(--accent-color)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path>
+          </svg>
+          **Data:** {new Date(event.date).toLocaleDateString('pt-PT', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </p>
-        {/* Adiciona mais detalhes do evento aqui, como mapa, palestrantes, etc. */}
+        <p className="flex items-center text-md">
+          <svg className="w-5 h-5 mr-2 text-[var(--accent-color)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
+          </svg>
+          **Local:** {event.location}
+        </p>
+      </div>
+      <div className="mt-8 text-center">
+        <button className="bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out">
+          Inscrever-me neste Evento
+        </button>
       </div>
     </section>
   );

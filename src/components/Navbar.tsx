@@ -1,12 +1,12 @@
 // src/components/Navbar.tsx
 // Este é o teu Server Component da Navbar
-import NavbarClient from './NavbarClient'; // O caminho para o NavbarClient está correto para a tua estrutura
+import NavbarClient from './NavbarClient'; // Caminho correto e importação padrão (default import)
 
 interface NavLink {
   id: number;
   title: string;
-  path: string;
-  order?: number;
+  path: string; // O caminho para o link (ex: "/", "/eventos", "/contactos")
+  order?: number; // Para ordenar os links
 }
 
 // Função para buscar os links de navegação do Strapi
@@ -19,22 +19,26 @@ async function getNavLinks(): Promise<NavLink[]> {
 
     if (!res.ok) {
       console.error(`Falha ao buscar nav-links: ${res.status} ${res.statusText}`);
-      return []; // Retorna um array vazio em caso de erro na resposta
+      return []; // Retorna um array vazio em caso de erro na resposta da API
     }
 
     const data = await res.json();
+    
     // O Strapi geralmente retorna os dados dentro de um objeto 'data'
     // Mapeia para a estrutura NavLink[]
     if (data && Array.isArray(data.data)) {
       return data.data.map((item: any) => ({
         id: item.id,
-        // CORREÇÃO JÁ APLICADA: Aceder diretamente aos campos, não via item.attributes
-        title: item.title, // Já está correto
-        path: item.path, // Já está correto
-        order: item.order || 0, // Garante que order é sempre um número
+        // *** PONTO CHAVE A VERIFICAR: ***
+        // Acede aos campos 'title' e 'path' diretamente do 'item'.
+        // Se no Strapi, 'title' e 'path' estão dentro de 'attributes', precisas de 'item.attributes.title' etc.
+        // Se estão diretos, como este código assume, 'item.title' está correto.
+        title: item.title, // Certifica-te que este 'title' corresponde ao que queres mostrar no botão
+        path: item.path,   // Certifica-te que este 'path' é o URL correto para onde o botão deve levar
+        order: item.order || 0, // Garante que order é sempre um número, usado para ordenar
       }));
     }
-    return []; // Retorna array vazio se a estrutura não for a esperada
+    return []; // Retorna array vazio se a estrutura dos dados não for a esperada
   } catch (error) {
     console.error("Erro ao buscar nav-links:", error);
     return []; // Retorna um array vazio em caso de erro de rede ou parsing
@@ -43,7 +47,7 @@ async function getNavLinks(): Promise<NavLink[]> {
 
 // Este é o teu componente Server principal da Navbar
 export default async function Navbar() {
-  const navLinks = await getNavLinks(); // Aguarda a obtenção dos links
+  const navLinks = await getNavLinks(); // Aguarda a obtenção dos links do Strapi
 
   return <NavbarClient navLinks={navLinks} />; // Passa a prop navLinks para o Client Component
 }
