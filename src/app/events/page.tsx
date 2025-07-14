@@ -1,6 +1,6 @@
 // src/app/events/page.tsx
 import React from 'react';
-import EventCard from '../../components/EventCard'; // Certifica-te que o caminho para EventCard está correto
+import EventCard from '../../components/EventCard'; // Caminho correto para o EventCard
 
 interface Event {
   id: number;
@@ -9,41 +9,46 @@ interface Event {
   date: string;
   location: string;
   imageUrl: string; 
+  totalVagas: number; 
+  vagasOcupadas: number; 
 }
 
 async function getEvents(): Promise<Event[]> {
   try {
-    // Busca eventos da tua API Strapi
     const res = await fetch('http://localhost:1337/api/eventos?populate=*', {
-      next: { revalidate: 60 } // Revalida os dados a cada 60 segundos
+      next: { revalidate: 60 } 
     });
     if (!res.ok) {
       console.error(`Falha ao buscar eventos: ${res.status} ${res.statusText}`);
       return [];
     }
-    const data = await res.json();
-    console.log("Dados brutos do Strapi (no getEvents):", data); 
+    const apiResponse = await res.json();
+    console.log("Dados brutos do Strapi (no getEvents):", apiResponse); 
 
-    if (data && Array.isArray(data.data)) {
-      const mappedEvents = data.data.map((item: any) => ({
-        id: item.id,
-        // *** IMPORTANTE: Acesso direto aos campos do item ***
-        // Se o teu Strapi aninha estes campos em 'attributes', então terás de usar:
-        // title: item.attributes.title || '',
-        // description: item.attributes.description || '',
-        // etc.
-        title: item.title || '', 
-        description: item.description || '', 
-        date: item.date || '', 
-        location: item.location || '', 
-        // Construção do URL da imagem:
-        // Verifica se 'item.image' existe e se tem 'url'. Adiciona o domínio Strapi.
-        imageUrl: item.image?.url ? `http://localhost:1337${item.image.url}` : '/placeholder-event.png',
-      }));
+    if (apiResponse && Array.isArray(apiResponse.data)) {
+      const mappedEvents = apiResponse.data.map((item: any) => {
+        // *** ESTAS FORAM AS MUDANÇAS CRÍTICAS! ***
+        // Acesso direto aos campos do 'item', pois o JSON do seu Strapi não tem 'attributes'.
+        // Acesso direto a 'item.image.url', pois o JSON não tem 'data.attributes' dentro de 'image'.
+        const imageUrl = item.image?.url 
+            ? `http://localhost:1337${item.image.url}` 
+            : '/placeholder-event.png'; 
+
+        return {
+          id: item.id, 
+          title: item.title || 'Evento sem título', 
+          description: item.description || 'Sem descrição.', 
+          date: item.date || 'Data não definida', 
+          location: item.location || 'Local não definido', 
+          imageUrl: imageUrl,
+          totalVagas: item.totalVagas || 0, 
+          vagasOcupadas: item.vagasOcupadas || 0, 
+        };
+      });
       console.log("Eventos mapeados (no getEvents):", mappedEvents); 
       return mappedEvents;
     }
-    console.warn("Formato de dados inesperado do Strapi (no getEvents):", data); 
+    console.warn("Formato de dados inesperado do Strapi (no getEvents):", apiResponse); 
     return [];
   } catch (error) {
     console.error("Erro ao buscar eventos (no getEvents):", error); 
@@ -58,15 +63,14 @@ export default async function EventsPage() {
 
   return (
     <section className="events-list py-12">
-      <h1 className="text-5xl font-extrabold text-center mb-12 text-gray-800 dark:text-white">
+      <h1 className="text-5xl font-extrabold text-center mb-12 text-[var(--foreground)]">
         Próximos Eventos
       </h1>
       {events.length === 0 ? (
-        <p className="text-center text-xl text-gray-600 dark:text-gray-400">Nenhum evento encontrado de momento.</p>
+        <p className="text-center text-xl text-[var(--foreground)] opacity-70">Nenhum evento encontrado de momento.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-10 px-4">
           {events.map((event) => (
-            // Passa os dados do evento para o componente EventCard
             <EventCard key={event.id} event={event} />
           ))}
         </div>
