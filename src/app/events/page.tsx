@@ -1,6 +1,6 @@
 // src/app/events/page.tsx
 import React from 'react';
-import EventCard from '../../components/EventCard'; // Caminho correto para o EventCard
+import EventCard from '../../components/EventCard';
 
 interface Event {
   id: number;
