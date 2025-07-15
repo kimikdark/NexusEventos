@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// Importante: useRouter não é necessário aqui, pois a navegação é tratada nas páginas parent.
+// Se estiver importado, certifique-se de que não está a ser usado incorretamente.
 
 const STRAPI_URL = 'http://localhost:1337'; // URL do teu Strapi
 
@@ -12,7 +13,6 @@ interface EventFormProps {
   isEditing: boolean; // Indica se o formulário está em modo de edição
 }
 
-// Interface para os dados do formulário
 export interface EventFormData {
   title: string;
   description: string;
@@ -32,13 +32,12 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
     location: '',
     totalVagas: 0,
     vagasOcupadas: 0,
-    status: 'draft', // Por padrão, começa como rascunho
+    status: 'draft',
   });
-  const [imageFile, setImageFile] = useState<File | null>(null); // Para o novo ficheiro de imagem
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Efeito para atualizar o formulário se initialData mudar (útil para edição)
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
@@ -47,7 +46,6 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    // Converte para número se for campo numérico
     setFormData(prevData => ({
       ...prevData,
       [name]: type === 'number' ? Number(value) : value,
@@ -67,10 +65,13 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
     setLoading(true);
     setError(null);
 
+    // DEBUG: Log para ver o formData antes de enviar
+    console.log('EventForm: formData a ser enviado:', formData);
+    console.log('EventForm: imageFile a ser enviado:', imageFile);
+
     try {
-      await onSave(formData, imageFile); // Chama a função onSave passada pelas props
+      await onSave(formData, imageFile); // Chama a função onSave passada pelas props (que está nas páginas new/edit)
       alert(isEditing ? 'Evento atualizado com sucesso!' : 'Evento criado com sucesso!');
-      // Limpa o formulário se estiver a adicionar um novo evento
       if (!isEditing) {
         setFormData({
           title: '', description: '', date: '', location: '', totalVagas: 0, vagasOcupadas: 0, status: 'draft'
@@ -78,8 +79,8 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
         setImageFile(null);
       }
     } catch (err: any) {
-      console.error('Erro ao salvar evento:', err);
-      setError(err.message || 'Falha ao salvar evento.');
+      console.error('EventForm: Erro ao salvar evento:', err);
+      setError(err.message || 'Falha ao salvar evento. Verifique a consola para detalhes.'); // Mensagem mais útil
     } finally {
       setLoading(false);
     }
@@ -119,7 +120,7 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
           type="datetime-local"
           id="date"
           name="date"
-          value={formData.date ? formData.date.substring(0, 16) : ''} // Formato para datetime-local
+          value={formData.date ? formData.date.substring(0, 16) : ''}
           onChange={handleChange}
           required
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] text-gray-900"
@@ -161,7 +162,7 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
           value={formData.vagasOcupadas}
           onChange={handleChange}
           min="0"
-          max={formData.totalVagas} // Não pode ser mais que as vagas totais
+          max={formData.totalVagas}
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] text-gray-900"
         />
       </div>

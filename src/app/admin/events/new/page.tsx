@@ -4,7 +4,7 @@
 import EventForm, { EventFormData } from '@/components/EventForm';
 import { useRouter } from 'next/navigation';
 
-const STRAPI_URL = 'http://localhost:1337';
+const STRAPI_URL = 'http://localhost:1337'; // URL do teu Strapi
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -22,29 +22,44 @@ export default function NewEventPage() {
       data.append('files.image', imageFile); // O ficheiro de imagem vai em 'files.nomeDoCampo'
     }
 
+    // DEBUG: Log do FormData antes de enviar para o Strapi
+    console.log('NewEventPage: FormData a ser enviado para o Strapi:');
+    for (let [key, value] of data.entries()) {
+        if (key === 'data') {
+            try {
+                console.log(`${key}:`, JSON.parse(value as string));
+            } catch (e) {
+                console.log(`${key}: ${value}`);
+            }
+        } else {
+            console.log(`${key}: ${value}`);
+        }
+    }
+
     try {
       const res = await fetch(`${STRAPI_URL}/api/eventos`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${jwt}`,
-          // REMOVE QUALQUER LINA 'Content-Type': 'application/json' AQUI!
-          // O navegador irá adicionar 'Content-Type: multipart/form-data' automaticamente.
+          // REMOVIDO: 'Content-Type': 'multipart/form-data' ou 'application/json'
+          // O navegador adiciona automaticamente o Content-Type correto para FormData.
         },
         body: data, // Envia o FormData
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Erro completo da API ao criar evento:", errorData);
-        throw new Error(errorData.error?.message || `Erro HTTP: ${res.status} ${res.statusText}`);
+        console.error("NewEventPage: Erro completo da API ao criar evento:", errorData);
+        // Lança um erro para ser capturado pelo EventForm e exibido
+        throw new Error(errorData.error?.message || `Erro HTTP: ${res.status} ${res.statusText}. Verifique a consola para detalhes.`);
       }
 
       const responseData = await res.json();
-      console.log('Evento criado com sucesso:', responseData);
-      router.push('/admin/events');
+      console.log('NewEventPage: Evento criado com sucesso:', responseData);
+      router.push('/admin/events'); // Redireciona de volta para a lista de eventos
     } catch (err: any) {
-      console.error('Falha ao criar evento:', err);
-      throw err;
+      console.error('NewEventPage: Falha ao criar evento (catch principal):', err);
+      throw err; // Re-lança o erro para ser capturado pelo EventForm
     }
   };
 
