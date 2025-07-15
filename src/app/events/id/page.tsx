@@ -1,6 +1,10 @@
 // src/app/events/[id]/page.tsx
 import Image from 'next/image';
 
+// Definir a URL base do teu Strapi API
+const STRAPI_URL = 'http://localhost:1337'; // Ajusta se o teu Strapi estiver noutro endereço
+
+// Interface para o formato dos dados de um único evento vindo diretamente do Strapi API
 interface EventDetail {
   id: number;
   title: string;
@@ -8,59 +12,77 @@ interface EventDetail {
   date: string;
   location: string;
   imageUrl: string;
-  totalVagas: number; 
-  vagasOcupadas: number; 
+  totalVagas: number;
+  vagasOcupadas: number;
 }
+
+// Interface para a estrutura da resposta COMPLETA do Strapi para um ÚNICO evento
+interface StrapiSingleResponse {
+    data: { // Para um único item, o Strapi envolve em 'data' e depois tem os campos diretos
+        id: number;
+        title: string;
+        description: string;
+        date: string;
+        location: string;
+        image?: { // A imagem está aninhada aqui
+            url: string;
+        };
+        totalVagas?: number;
+        vagasOcupadas?: number;
+        // Outros campos como createdAt, updatedAt, publishedAt podem estar aqui mas não são necessários para a interface EventDetail
+    } | null; // Pode ser null se o evento não for encontrado
+    meta: any;
+}
+
 
 async function getEvent(id: string): Promise<EventDetail | null> {
   try {
-    const apiUrl = `http://localhost:1337/api/eventos/${id}?populate=*`; // A URL da API para buscar um evento específico
-    console.log(`[getEvent] A buscar evento com ID: ${id}`);
-    console.log(`[getEvent] URL da API: ${apiUrl}`);
+    // A URL da API para buscar um evento específico - usar o API ID plural 'eventos'
+    const apiUrl = `${STRAPI_URL}/api/eventos/${id}?populate=*`;
+    console.log(`[getEvent - details page] A buscar evento com ID: ${id}`);
+    console.log(`[getEvent - details page] URL da API: ${apiUrl}`);
 
     const res = await fetch(apiUrl, {
-      cache: 'no-store' 
+      cache: 'no-store'
     });
 
-    console.log(`[getEvent] Status da resposta do Strapi: ${res.status} ${res.statusText}`);
+    console.log(`[getEvent - details page] Status da resposta do Strapi: ${res.status} ${res.statusText}`);
 
     if (!res.ok) {
-      console.error(`[getEvent] Falha ao buscar evento com ID ${id}:`, res.status, res.statusText);
+      console.error(`[getEvent - details page] Falha ao buscar evento com ID ${id}:`, res.status, res.statusText);
       return null;
     }
 
-    const apiResponse = await res.json(); // Renomeado para 'apiResponse' para evitar confusão com 'data.data'
-    console.log("[getEvent] Dados brutos do Strapi (para detalhe):", apiResponse); //
+    const apiResponse: StrapiSingleResponse = await res.json();
+    console.log("[getEvent - details page] Dados brutos do Strapi (para detalhe):", apiResponse);
 
-    // AQUI ESTÁ A MUDANÇA CRÍTICA:
-    // Para um único item, Strapi retorna { "data": { id: ..., title: ..., image: { ... } } }
-    // Não tem outro 'attributes' wrapper aqui no teu caso.
-    if (apiResponse && apiResponse.data) { 
-        const eventData = apiResponse.data; // Aceder diretamente a data.data
+    // Acessar diretamente apiResponse.data, pois é a estrutura para um único item
+    if (apiResponse && apiResponse.data) {
+        const eventData = apiResponse.data;
 
         // Acessar a URL da imagem diretamente de eventData.image.url
-        const imageUrl = eventData.image?.url 
-            ? `http://localhost:1337${eventData.image.url}` 
-            : '/placeholder-event.png'; 
+        const imageUrl = eventData.image?.url
+            ? `${STRAPI_URL}${eventData.image.url}`
+            : '/images/placeholder-event.png'; // Usar uma imagem de fallback
 
         const mappedEvent: EventDetail = {
-            id: eventData.id, 
-            title: eventData.title || 'Evento sem título', 
-            description: eventData.description || 'Sem descrição.', 
-            date: eventData.date || 'Data não definida', 
-            location: eventData.location || 'Local não definido', 
+            id: eventData.id,
+            title: eventData.title || 'Evento sem título',
+            description: eventData.description || 'Sem descrição.',
+            date: eventData.date || 'Data não definida',
+            location: eventData.location || 'Local não definido',
             imageUrl: imageUrl,
             totalVagas: eventData.totalVagas || 0,
             vagasOcupadas: eventData.vagasOcupadas || 0,
         };
-        console.log("[getEvent] Evento mapeado:", mappedEvent);
+        console.log("[getEvent - details page] Evento mapeado:", mappedEvent);
         return mappedEvent;
     }
-    console.warn(`[getEvent] Formato de dados inesperado do Strapi para ID ${id}:`, apiResponse);
+    console.warn(`[getEvent - details page] Formato de dados inesperado do Strapi para ID ${id}:`, apiResponse);
     return null;
 
   } catch (error) {
-    console.error(`[getEvent] Erro de rede ou parsing ao buscar evento com ID ${id}:`, error);
+    console.error(`[getEvent - details page] Erro de rede ou parsing ao buscar evento com ID ${id}:`, error);
     return null;
   }
 }
@@ -110,7 +132,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           </svg>
           <strong>Local:</strong> {event.location}
         </p>
-        {event.totalVagas > 0 && ( 
+        {event.totalVagas > 0 && (
             <p className="flex items-center text-md">
                 <svg className="w-5 h-5 mr-2 text-[var(--accent-color)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM11 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"></path>
