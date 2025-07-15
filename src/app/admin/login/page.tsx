@@ -1,11 +1,10 @@
 // src/app/admin/login/page.tsx
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
-const STRAPI_URL = 'http://localhost:1337'; // Confirma que esta URL está correta
+const STRAPI_URL = 'http://localhost:1337'; // Ajusta se o teu Strapi estiver noutro endereço
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -14,10 +13,10 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault(); // Impede o recarregamento padrão da página
-    setError(null);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(`${STRAPI_URL}/api/auth/local`, {
@@ -26,88 +25,70 @@ export default function AdminLoginPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          identifier: email, // Strapi espera 'identifier' para email/username
+          identifier: email, // O Strapi usa 'identifier' para email/username
           password: password,
         }),
       });
 
-      const data = await res.json();
-      console.log("Resposta da API de Login:", data); // IMPORTANTE: Verifica este log na consola
-
       if (!res.ok) {
-        // Se a resposta não for OK (status 4xx ou 5xx), é um erro
-        console.error("Erro no login:", data);
-        setError(data.error?.message || 'Erro ao fazer login. Verifique as suas credenciais.');
-        // Se for um erro de credenciais, o Strapi geralmente retorna 400 Bad Request
-        // e a mensagem em data.error.message
-        return; // Sai da função para não prosseguir
+        const errorData = await res.json();
+        console.error('Erro de login:', errorData);
+        setError(errorData.error?.message || 'Credenciais inválidas.');
+        setLoading(false);
+        return;
       }
 
-      // Login bem-sucedido
-      if (data.jwt) {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('jwt', data.jwt);
-          localStorage.setItem('user', JSON.stringify(data.user)); // Armazena info do utilizador se necessário
-        }
-        router.push('/admin/dashboard'); // Redireciona para o dashboard
-      } else {
-        setError('Resposta inesperada da API. Token JWT não encontrado.');
-      }
+      const data = await res.json();
+      localStorage.setItem('jwt', data.jwt); // Armazena o JWT
+      localStorage.setItem('user', JSON.stringify(data.user)); // Armazena os dados do utilizador
+      setLoading(false);
+      router.push('/admin/dashboard'); // Redireciona para o dashboard após o login
+
     } catch (err: any) {
-      console.error('Falha na conexão ou erro inesperado:', err);
-      setError(err.message || 'Ocorreu um erro. Tente novamente mais tarde.');
-    } finally {
+      console.error('Erro de rede ou desconhecido:', err);
+      setError(err.message || 'Ocorreu um erro. Tente novamente.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--background)] p-4">
-      <div className="w-full max-w-md rounded-lg bg-[var(--secondary-background)] p-8 shadow-lg">
-        <h1 className="mb-6 text-center text-3xl font-bold text-[var(--foreground)]">Login do Administrador</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="flex justify-center items-center min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      <div className="bg-[var(--secondary-background)] p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 className="text-3xl font-bold text-center mb-6">Login do Administrador</h1>
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 sr-only">Email:</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300">Email:</label>
             <input
               type="email"
               id="email"
-              placeholder="Email:"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-900 shadow-sm focus:border-[var(--accent-color)] focus:ring-[var(--accent-color)]"
+              className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] bg-gray-800 text-white placeholder-gray-400"
+              disabled={loading}
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 sr-only">Password:</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300">Password:</label>
             <input
               type="password"
               id="password"
-              placeholder="Password:"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-4 py-3 text-gray-900 shadow-sm focus:border-[var(--accent-color)] focus:ring-[var(--accent-color)]"
+              className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] bg-gray-800 text-white placeholder-gray-400"
+              disabled={loading}
             />
           </div>
-          {error && (
-            <p className="text-center text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
           <button
             type="submit"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)] transition duration-300 disabled:opacity-50"
             disabled={loading}
-            className="w-full rounded-md bg-[var(--accent-color)] py-3 px-4 text-center font-medium text-white shadow-sm hover:bg-[var(--secondary-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 disabled:opacity-50"
           >
             {loading ? 'A Entrar...' : 'Entrar'}
           </button>
         </form>
-        {/* Opcional: Link para registo, se tiveres permissão para auto-registo de admins */}
-        {/* <p className="mt-6 text-center text-sm text-gray-500">
-          Não tem uma conta?{' '}
-          <Link href="/admin/register" className="font-medium text-[var(--accent-color)] hover:underline">
-            Registar-se
-          </Link>
-        </p> */}
       </div>
     </div>
   );

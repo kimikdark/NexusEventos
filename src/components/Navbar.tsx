@@ -1,6 +1,8 @@
 // src/components/Navbar.tsx
 // Este é o teu Server Component da Navbar
-import NavbarClient from './NavbarClient'; // Caminho correto e importação padrão (default import)
+import NavbarClient from './NavbarClient';
+
+const STRAPI_URL = 'http://localhost:1337'; // Definir a URL do Strapi aqui
 
 interface NavLink {
   id: number;
@@ -13,7 +15,7 @@ interface NavLink {
 // Esta função é assíncrona e executa no servidor
 async function getNavLinks(): Promise<NavLink[]> {
   try {
-    const res = await fetch('http://localhost:1337/api/nav-links?populate=*', {
+    const res = await fetch(`${STRAPI_URL}/api/nav-links?populate=*`, {
       next: { revalidate: 60 } // Revalidar os dados a cada 60 segundos
     });
 
@@ -23,19 +25,21 @@ async function getNavLinks(): Promise<NavLink[]> {
     }
 
     const data = await res.json();
-    
+
     // O Strapi geralmente retorna os dados dentro de um objeto 'data'
-    // Mapeia para a estrutura NavLink[]
+    // E os campos estão dentro de 'attributes' se for um Collection Type típico.
+    // No entanto, para Single Types ou customizações, podem estar diretos.
+    // Pelo erro, parece que estão diretos.
+
     if (data && Array.isArray(data.data)) {
       return data.data.map((item: any) => ({
         id: item.id,
-        // *** PONTO CHAVE A VERIFICAR: ***
-        // Acede aos campos 'title' e 'path' diretamente do 'item'.
-        // Se no Strapi, 'title' e 'path' estão dentro de 'attributes', precisas de 'item.attributes.title' etc.
-        // Se estão diretos, como este código assume, 'item.title' está correto.
-        title: item.title, // Certifica-te que este 'title' corresponde ao que queres mostrar no botão
-        path: item.path,   // Certifica-te que este 'path' é o URL correto para onde o botão deve levar
-        order: item.order || 0, // Garante que order é sempre um número, usado para ordenar
+        // CORREÇÃO: Acessar diretamente item.title, item.path, item.order
+        // Se no teu Strapi, os campos 'title', 'path', 'order' estão diretos no item (e.g., para um Single Type)
+        // ou se o populate não está a retornar os atributos como esperado.
+        title: item.title,
+        path: item.path,
+        order: item.order || 0,
       }));
     }
     return []; // Retorna array vazio se a estrutura dos dados não for a esperada
