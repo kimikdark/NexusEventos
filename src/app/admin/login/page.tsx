@@ -14,39 +14,72 @@ export default function AdminLoginPage() {
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    try {
-      const res = await fetch(`${STRAPI_URL}/api/auth/local`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identifier: email, // O Strapi usa 'identifier' para email/username
-          password: password,
-        }),
-      });
+  console.log('Tentando login com Email:', email); // Adiciona esta linha
+  console.log('Tentando login com Password:', password ? '********' : 'Vazio'); // Adiciona esta linha (esconde a password por segurança)
 
+  try {
+    const res = await fetch(`${STRAPI_URL}/api/auth/local`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        identifier: email,
+        password: password,
+      }),
+    });
+    
+      // Se a resposta NÃO for OK (por exemplo, 400, 401, 500)
       if (!res.ok) {
-        const errorData = await res.json();
-        console.error('Erro de login:', errorData);
-        setError(errorData.error?.message || 'Credenciais inválidas.');
+        // Tenta ler a resposta como texto primeiro para depuração profunda
+        const errorText = await res.text();
+        console.error('Erro de login (resposta RAW - não OK):', errorText); // Loga a resposta bruta para depuração
+
+        try {
+            // Tenta fazer parse do texto como JSON. Se for vazio ou inválido, resultará em {}.
+            const errorData = errorText ? JSON.parse(errorText) : {};
+            let errorMessage = 'Credenciais inválidas ou erro desconhecido.'; // Mensagem de fallback
+
+            // Tenta extrair a mensagem de erro da estrutura comum do Strapi
+            if (errorData && typeof errorData === 'object' && 'error' in errorData) {
+                if (errorData.error && typeof errorData.error === 'object' && 'message' in errorData.error) {
+                    errorMessage = errorData.error.message;
+                } else if ('message' in errorData) { // Alguns erros do Strapi podem ter 'message' diretamente no root
+                    errorMessage = errorData.message;
+                }
+            }
+            setError(errorMessage);
+        } catch (jsonParseError) {
+            // Se falhar ao fazer parse do JSON, é um erro inesperado no formato da resposta
+            console.error('Erro ao fazer parse da resposta de erro como JSON:', jsonParseError);
+            setError('Ocorreu um erro inesperado ao processar a resposta do servidor (formato inválido).');
+        }
+
         setLoading(false);
-        return;
+        return; // Sai da função, pois houve um erro de autenticação
       }
 
+      // Se a resposta for OK (status 200), processa a resposta de sucesso
       const data = await res.json();
-      localStorage.setItem('jwt', data.jwt); // Armazena o JWT
+      localStorage.setItem('jwt', data.jwt); // Armazena o JWT no localStorage
       localStorage.setItem('user', JSON.stringify(data.user)); // Armazena os dados do utilizador
+
       setLoading(false);
-      router.push('/admin/dashboard'); // Redireciona para o dashboard após o login
+      console.log('Login bem-sucedido. Redirecionando para /admin/dashboard...'); // Para depuração
+      router.push('/admin/dashboard'); // Redireciona para o dashboard
 
     } catch (err: any) {
-      console.error('Erro de rede ou desconhecido:', err);
-      setError(err.message || 'Ocorreu um erro. Tente novamente.');
+      // Captura erros de rede (ex: servidor Strapi não acessível) ou JSON inválido após um res.ok
+      console.error('Erro de rede ou desconhecido (catch geral):', err);
+      if (err instanceof SyntaxError) {
+          setError('Ocorreu um erro ao processar a resposta do servidor (JSON inválido na resposta de sucesso).');
+      } else {
+          setError(err.message || 'Ocorreu um erro inesperado. Tente novamente.');
+      }
       setLoading(false);
     }
   };

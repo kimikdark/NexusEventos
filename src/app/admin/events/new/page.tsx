@@ -10,16 +10,39 @@ export default function NewEventPage() {
   const router = useRouter();
 
   const handleSaveNewEvent = async (formData: EventFormData, imageFile?: File | null) => {
-    const jwt = localStorage.getItem('jwt');
+    // AINDA A LER DO LOCALSTORAGE - PONTO DE MELHORIA: MIGRAR PARA COOKIES/API ROUTE SERVERSIDE
+    const jwt = localStorage.getItem('jwt'); 
     if (!jwt) {
       throw new Error('Não autenticado. Por favor, faça login.');
     }
 
+    // --- CÓDIGO DA DATA (JÁ CORRIGIDO) ---
+    const eventDataToSend: EventFormData = { ...formData }; 
+
+    if (eventDataToSend.date) {
+      try {
+        const parsedDate = new Date(eventDataToSend.date);
+        if (!isNaN(parsedDate.getTime())) {
+          eventDataToSend.date = parsedDate.toISOString(); 
+        } else {
+          console.error("NewEventPage: Data inválida fornecida:", eventDataToSend.date);
+          throw new Error("Por favor, forneça uma data e hora válidas para o evento.");
+        }
+      } catch (e) {
+        console.error("NewEventPage: Erro ao processar a data do evento:", e);
+        throw new Error("Ocorreu um erro ao formatar a data do evento. Verifique o formato.");
+      }
+    }
+    // --- FIM DO CÓDIGO DA DATA ---
+
     const data = new FormData();
-    data.append('data', JSON.stringify(formData)); // Os dados do evento vão em 'data'
+    // Envia o 'eventDataToSend' que tem a data já formatada corretamente
+    data.append('data', JSON.stringify(eventDataToSend)); 
 
     if (imageFile) {
-      data.append('files.image', imageFile); // O ficheiro de imagem vai em 'files.nomeDoCampo'
+      // --- REVERSÃO AQUI: VOLTANDO PARA 'files.image' ---
+      // Esta é a forma padrão para um único ficheiro quando o campo no Strapi é "Single media".
+      data.append('files.image', imageFile); 
     }
 
     // DEBUG: Log do FormData antes de enviar para o Strapi
@@ -41,7 +64,6 @@ export default function NewEventPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${jwt}`,
-          // REMOVIDO: 'Content-Type': 'multipart/form-data' ou 'application/json'
           // O navegador adiciona automaticamente o Content-Type correto para FormData.
         },
         body: data, // Envia o FormData

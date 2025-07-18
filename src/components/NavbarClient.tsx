@@ -19,12 +19,13 @@ export default function NavbarClient({ navLinks }: { navLinks: NavLink[] }) {
 
   // Verifica o status de login ao montar o componente
   useEffect(() => {
-    // Apenas executa no browser (para evitar erros de localStorage no server)
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('jwt');
-      setIsLoggedIn(!!token); // true se o token existir, false caso contrário
-    }
-  }, []); // Executa apenas uma vez no mount
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('jwt');
+    console.log('Token JWT no localStorage:', token);// Verifica o token no localStorage
+    setIsLoggedIn(!!token);
+    console.log('isLoggedIn:', !!token);// Atualiza o estado de login com base na presença do token
+  }
+}, []);
 
   const handleLogout = () => {
     localStorage.removeItem('jwt'); // Remove o token

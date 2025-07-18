@@ -3,7 +3,8 @@ import React from 'react';
 import EventCard from '../../components/EventCard';
 
 interface Event {
-  id: number;
+  // Agora o ID é o documentId (string/UUID)
+  id: string; // <<--- ALTERADO PARA STRING
   title: string;
   description: string;
   date: string;
@@ -11,6 +12,23 @@ interface Event {
   imageUrl: string; 
   totalVagas: number; 
   vagasOcupadas: number; 
+}
+
+// Interface para o item de dados do Strapi na resposta da API de lista
+interface StrapiEventListItem {
+    id: number; // ID numérico padrão do Strapi
+    documentId: string; // O seu campo personalizado de ID de string
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+    totalVagas: number;
+    vagasOcupadas: number;
+    // Assumindo que a imagem está direta no item, sem "data" aninhado
+    image?: { 
+        url: string;
+    };
+    // Adicione outras propriedades se o seu Strapi as devolver no nível superior
 }
 
 async function getEvents(): Promise<Event[]> {
@@ -26,16 +44,15 @@ async function getEvents(): Promise<Event[]> {
     console.log("Dados brutos do Strapi (no getEvents):", apiResponse); 
 
     if (apiResponse && Array.isArray(apiResponse.data)) {
-      const mappedEvents = apiResponse.data.map((item: any) => {
-        // *** ESTAS FORAM AS MUDANÇAS CRÍTICAS! ***
-        // Acesso direto aos campos do 'item', pois o JSON do seu Strapi não tem 'attributes'.
-        // Acesso direto a 'item.image.url', pois o JSON não tem 'data.attributes' dentro de 'image'.
+      // Mapeamos os dados do Strapi para a nossa interface Event
+      const mappedEvents = apiResponse.data.map((item: StrapiEventListItem) => {
         const imageUrl = item.image?.url 
             ? `http://localhost:1337${item.image.url}` 
             : '/placeholder-event.png'; 
 
         return {
-          id: item.id, 
+          // *** MUDANÇA CRÍTICA: USAMOS item.documentId COMO O ID PRINCIPAL ***
+          id: item.documentId, // <<--- ALTERADO PARA USAR O documentId
           title: item.title || 'Evento sem título', 
           description: item.description || 'Sem descrição.', 
           date: item.date || 'Data não definida', 
@@ -71,7 +88,8 @@ export default async function EventsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-10 px-4">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} />
+            // A key agora será o documentId (string)
+            <EventCard key={event.id} event={event} /> 
           ))}
         </div>
       )}

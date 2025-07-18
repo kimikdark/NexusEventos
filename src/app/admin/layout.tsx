@@ -1,41 +1,74 @@
 // src/app/admin/layout.tsx
-'use client'; // Indicação para o Next.js que é um Client Component
+'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation'; // Para redirecionar
-import Link from 'next/link'; // Para navegação dentro da área admin
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Estado de autenticação
-  const [loading, setLoading] = useState(true); // Estado de carregamento da autenticação
+  const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true); // Start as true to always run initial check
+
+  // Log values during each render pass to debug state propagation
+  console.log('AdminLayout Render - pathname:', pathname, 'isAuthenticated:', isAuthenticated, 'loading:', loading);
 
   useEffect(() => {
-    // Esta função é executada apenas no lado do cliente
-    const jwt = localStorage.getItem('jwt'); // Tenta obter o token JWT do localStorage
+    console.log('AdminLayout useEffect START at pathname:', pathname);
+    // Reset loading to true on every pathname change, to re-evaluate auth status for the new path
+    setLoading(true); 
 
-    if (jwt) {
-      // Se o JWT existe, assumimos que o utilizador está autenticado.
-      // Em um sistema real, seria prudente fazer uma chamada a uma API protegida
-      // (ex: /api/users/me) para validar o JWT no backend e verificar se não expirou.
-      setIsAuthenticated(true);
-    } else {
-      // Se não houver JWT, o utilizador não está autenticado, redireciona para a página de login
-      router.push('/login');
+    let jwt = null;
+    if (typeof window !== 'undefined') {
+        jwt = localStorage.getItem('jwt');
+        console.log('AdminLayout useEffect - JWT from localStorage:', jwt);
     }
-    setLoading(false); // Finaliza o estado de carregamento
-  }, [router]); // Dependência do `router` garante que o efeito re-executa se o objeto router mudar (raro)
+    
+    const isLoggedIn = !!jwt;
 
-  // Função para lidar com o logout
+    // Update authentication state
+    setIsAuthenticated(isLoggedIn); 
+    setLoading(false); // Mark authentication check as complete for this pathname
+
+    console.log('AdminLayout useEffect - isLoggedIn (após verificar JWT e definir estado):', isLoggedIn);
+    console.log('AdminLayout useEffect - pathname.startsWith("/admin"):', pathname.startsWith('/admin'));
+    console.log('AdminLayout useEffect - pathname !== "/admin/login":', pathname !== '/admin/login');
+
+    // Conditional redirection logic
+    if (isLoggedIn && pathname === '/admin/login') {
+      console.log('AdminLayout useEffect - Condição de redirecionamento ativada: Autenticado e na página de login, redirecionando para /admin/dashboard.');
+      router.replace('/admin/dashboard'); 
+    } else if (!isLoggedIn && pathname.startsWith('/admin') && pathname !== '/admin/login') {
+      console.log('AdminLayout useEffect - Condição de redirecionamento ativada: Não autenticado e a tentar aceder rota protegida, redirecionando para /admin/login.');
+      router.replace('/admin/login');
+    }
+
+    console.log('AdminLayout useEffect END.');
+  }, [router, pathname]); // Depend on router and pathname for re-evaluation
+
   const handleLogout = () => {
-    localStorage.removeItem('jwt'); // Remove o token JWT
-    localStorage.removeItem('user'); // Remove quaisquer informações de utilizador armazenadas
-    setIsAuthenticated(false); // Atualiza o estado de autenticação
-    router.push('/login'); // Redireciona para a página de login
+    localStorage.removeItem('jwt');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    router.replace('/admin/login'); 
   };
 
-  // Exibe um estado de carregamento enquanto verifica a autenticação
+  // --- Rendering Logic ---
+
+  // 1. If currently on the login page, render only its content without the admin layout.
+  if (pathname === '/admin/login') {
+    console.log('AdminLayout Render - Estamos na página de login, renderizando apenas o conteúdo da página.');
+    return (
+      <div className="admin-layout flex min-h-screen bg-[var(--background)]">
+        {children} 
+      </div>
+    );
+  }
+
+  // 2. While authentication check is in progress, show loading state.
   if (loading) {
+    console.log('AdminLayout Render - "loading" é true. Mostrando estado de verificação...');
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-80px)] text-[var(--foreground)]">
         A verificar autenticação...
@@ -43,12 +76,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Se não estiver autenticado após o carregamento (e já foi redirecionado), não renderiza nada temporariamente
+  // 3. If authentication check is complete (loading is false) AND NOT authenticated.
   if (!isAuthenticated) {
-    return null;
+    console.log('AdminLayout Render - "loading" é false, mas "isAuthenticated" é false. Deveria ter redirecionado via useEffect. Retornando null.');
+    return null; 
   }
 
-  // Se estiver autenticado, renderiza o layout da administração com o conteúdo filho
+  // 4. If authentication check is complete AND authenticated, render the full admin layout.
+  console.log('AdminLayout Render - "loading" é false e "isAuthenticated" é true. Renderizando layout completo do admin.');
   return (
     <div className="admin-layout flex min-h-screen bg-[var(--background)]">
       {/* Sidebar de Navegação da Administração */}
@@ -85,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Conteúdo Principal da Administração */}
       <main className="flex-1 p-8">
-        {children} {/* Aqui serão renderizadas as páginas aninhadas (ex: dashboard, gerir eventos) */}
+        {children} 
       </main>
     </div>
   );

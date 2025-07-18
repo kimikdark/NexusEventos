@@ -1,10 +1,11 @@
 // src/components/EventCard.tsx
+'use client';
 import Link from 'next/link';
 import Image from 'next/image';
 
 interface EventProps {
   event: {
-    id: number;
+    id: string; // <<--- ALTERADO PARA STRING (UUID)
     title: string;
     description: string;
     date: string;
@@ -57,7 +58,7 @@ const EventCard: React.FC<EventProps> = ({ event }) => {
           {event.location}
         </div>
         <div className="mt-auto pt-4">
-          {/* O Link deve envolver o botão diretamente e o href deve ser o ID correto */}
+          {/* O Link usará o documentId (UUID) que agora será passado como event.id */}
           <Link href={`/events/${event.id}`} className="w-full">
             <button className="w-full bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] text-white font-bold py-2 px-4 rounded-md transition duration-300 shadow-md">
               Ver Detalhes

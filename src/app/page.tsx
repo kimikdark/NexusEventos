@@ -1,25 +1,24 @@
 // src/app/page.tsx
-'use client'; // MUITO IMPORTANTE: Garante que este componente é renderizado no cliente.
+'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import EventCard from '../components/EventCard';
-import { useState, useEffect } from 'react'; // Importar useState e useEffect para Client Components
+import { useState, useEffect } from 'react';
 
 // Definir a URL base do teu Strapi API
 const STRAPI_URL = 'http://localhost:1337'; // Ajusta se o teu Strapi estiver noutro endereço
 
 // Interface para o formato dos dados dos eventos que vêm diretamente do Strapi API para LISTAGENS.
-// Esta interface reflete a estrutura "plana" que o teu Strapi parece estar a retornar.
 interface StrapiEvent {
-  id: number; // O ID está diretamente no objeto
+  id: number; // O ID interno numérico do Strapi
+  documentId: string; // O seu campo UUID personalizado, que é uma string
   title: string;
   description: string;
   date: string;
   location: string;
-  image?: { // A imagem está diretamente aninhada, e a URL está em .url
+  image?: {
     url: string;
-    // Outras propriedades da imagem podem estar aqui (ex: name, hash, ext, mime, size, width, height)
   };
   totalVagas?: number;
   vagasOcupadas?: number;
@@ -30,13 +29,13 @@ interface StrapiEvent {
 
 // Interface para a estrutura da resposta COMPLETA do Strapi para uma LISTA de eventos
 interface StrapiResponse {
-  data: StrapiEvent[]; // O array de eventos "planos"
-  meta: any; // Pode conter informações de paginação, etc.
+  data: StrapiEvent[];
+  meta: any;
 }
 
 // Interface para o formato do evento que será usado no estado e passado para o EventCard
 interface Event {
-  id: number;
+  id: string; // AGORA É UMA STRING (o documentId)
   title: string;
   description: string;
   date: string;
@@ -48,9 +47,8 @@ interface Event {
 async function getEvents(): Promise<Event[]> {
   console.log("Tentando buscar eventos do Strapi para a página inicial...");
   try {
-    // Usamos populate=* para garantir que a imagem (e outros campos relacionados) venham
     const res = await fetch(`${STRAPI_URL}/api/eventos?populate=*`, {
-      cache: 'no-store', // Desativa o cache para obter sempre os dados mais recentes durante o desenvolvimento
+      cache: 'no-store',
     });
 
     console.log("Status da resposta da API (page.tsx):", res.status, res.statusText);
@@ -62,27 +60,25 @@ async function getEvents(): Promise<Event[]> {
     }
 
     const apiResponse: StrapiResponse = await res.json();
-    console.log("Dados recebidos da API (raw) para page.tsx:", apiResponse); // Mostra a resposta JSON completa
+    console.log("Dados recebidos da API (raw) para page.tsx:", apiResponse);
 
-    // Verificação crucial: certifica-se de que 'apiResponse' e 'apiResponse.data' existem e são arrays
     if (!apiResponse || !Array.isArray(apiResponse.data)) {
         console.error("Dados da API não estão no formato esperado (missing apiResponse.data array para page.tsx):", apiResponse);
         return [];
     }
 
-    // A MUDANÇA CRÍTICA ESTÁ AQUI:
-    // Mapeia os dados do Strapi para o formato esperado pelo componente EventCard
     const events = apiResponse.data.map(item => {
-        // Acesso DIRETO aos campos do 'item', pois o teu Strapi retorna uma estrutura "plana"
-        // para listagens (data: [{}, {}, ...]).
-        // Acesso DIRETO a 'item.image.url'
         const imageUrl = item.image?.url
-            ? `${STRAPI_URL}${item.image.url}` // Constrói a URL completa da imagem
-            : '/images/default-event.jpg'; // Imagem de fallback se não houver imagem do Strapi
+            ? `${STRAPI_URL}${item.image.url}`
+            : '/images/default-event.jpg';
 
-        // Retorna o objeto Event com os campos acessados diretamente do 'item'
+        if (!item.documentId) {
+          console.warn(`Evento com ID numérico ${item.id} não tem documentId. Será ignorado ou terá um ID inválido.`);
+          return null; // Retorna null para filtrar depois
+        }
+
         return {
-            id: item.id, // Acessando o ID diretamente
+            id: item.documentId, // AGORA USA O DOCUMENT_ID (STRING)
             title: item.title || 'Evento sem título',
             description: item.description || 'Sem descrição.',
             date: item.date || 'Data não definida',
@@ -95,40 +91,37 @@ async function getEvents(): Promise<Event[]> {
     return events;
   } catch (error) {
     console.error("Falha geral ao buscar ou processar eventos do Strapi (para page.tsx):", error);
-    return []; // Retorna um array vazio em caso de qualquer erro
+    return [];
   }
 }
 
 export default function Home() {
-  const [events, setEvents] = useState<Event[]>([]); // Tipagem explícita para o estado de eventos
-  const [loading, setLoading] = useState(true); // Estado para indicar se os dados estão a carregar
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // useEffect para buscar os dados quando o componente é montado no lado do cliente
   useEffect(() => {
     async function fetchAndSetEvents() {
       console.log("useEffect: Iniciando busca e processamento de eventos na página inicial.");
-      const fetchedEvents = await getEvents(); // CHAMADA CORRETA
+      const fetchedEvents = await getEvents();
       console.log("useEffect: Eventos buscados (antes da ordenação/filtragem para page.tsx):", fetchedEvents);
 
-      // Ordena os eventos por data (do mais próximo para o mais distante)
       const sortedEvents = fetchedEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       console.log("useEffect: Eventos ordenados para page.tsx:", sortedEvents);
 
-      // Filtra os eventos para mostrar apenas os futuros
-      const now = Date.now(); // Obtém o timestamp atual
+      const now = Date.now();
       const upcomingEvents = sortedEvents.filter(event => {
-        const eventDate = new Date(event.date).getTime(); // Converte a data do evento para timestamp
-        const isUpcoming = eventDate >= now; // Compara com o timestamp atual
+        const eventDate = new Date(event.date).getTime();
+        const isUpcoming = eventDate >= now;
         return isUpcoming;
       });
-      console.log("useEffect: Eventos futuros (após filtragem para page.tsx):", upcomingEvents); // MUITO IMPORTANTE: Verifica este log!
+      console.log("useEffect: Eventos futuros (após filtragem para page.tsx):", upcomingEvents);
 
-      setEvents(upcomingEvents); // Atualiza o estado com os eventos filtrados e ordenados
-      setLoading(false); // Define o estado de carregamento como falso
+      setEvents(upcomingEvents);
+      setLoading(false);
       console.log("useEffect: Carregamento de eventos concluído para page.tsx.");
     }
     fetchAndSetEvents();
-  }, []); // O array vazio assegura que o efeito corre apenas uma vez (ao montar)
+  }, []);
 
   return (
     <main>
@@ -149,7 +142,7 @@ export default function Home() {
       {/* 2. Secção Hero */}
       <section className="py-16 px-4 mx-auto max-w-screen-xl text-center bg-[var(--background)]">
         <h1 className="mb-4 text-4xl font-extrabold tracking-tight leading-none text-[var(--foreground)] md:text-5xl lg:text-6xl">
-          Bem-vindo ao Nexus Eventos
+          Bem-vindo ao Nexus Events
         </h1>
         <p className="mb-8 text-lg font-normal text-gray-500 lg:text-xl sm:px-16 lg:px-48 dark:text-gray-400">
           Descubra os próximos eventos e workshops, e junte-se à comunidade!
@@ -171,7 +164,61 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Secção "Próximos Eventos" com Scroll Horizontal de Cards */}
+      {/* 3. Nova Secção: Sobre o Negócio */}
+      <section className="py-12 px-4 mx-auto max-w-screen-xl bg-[var(--background)]">
+        <h2 className="text-3xl font-bold text-[var(--foreground)] text-center mb-8">Sobre o Nexus Events</h2>
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className="md:order-2">
+            <Image
+              src="/images/pc.jpg"
+              alt="Sobre nós"
+              width={500}
+              height={300}
+              className="rounded-lg shadow-lg w-full h-auto"
+            />
+          </div>
+          <div className="md:order-1 text-center md:text-left">
+            <p className="text-lg text-gray-500 mb-4">
+              O Nexus Events é a sua plataforma dedicada à gestão e descoberta de eventos incríveis. Acreditamos que a partilha de conhecimento e a conexão entre pessoas são fundamentais para o crescimento pessoal e profissional.
+            </p>
+            <p className="text-lg text-gray-500">
+              Desde workshops práticos a sessões de consultoria especializadas, o nosso objetivo é simplificar a forma como os pequenos negócios organizam e gerem os seus eventos, e como os participantes encontram as oportunidades que mais lhes interessam. Junte-se a nós e descubra um mundo de aprendizagem e networking!
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Nova Secção: Precisa de Ajuda? (Com imagem e texto lado a lado) */}
+      <section className="py-12 px-4 bg-[var(--background)]"> {/* Ocupa a largura total da secção */}
+        <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Imagem Placeholder (Esquerda em ecrãs grandes, Topo em ecrãs pequenos) */}
+          <div className="md:order-1"> {/* Ordem explícita para responsividade */}
+            {/* Certifica-te de ter esta imagem em public/images/ ou usa um placeholder online */}
+            <Image
+              src="/images/call.jpg" // Exemplo de imagem, ajusta o caminho ou usa URL
+              alt="Pessoas em contacto, ilustração de apoio"
+              width={600} // Largura intrínseca para otimização de imagem
+              height={400} // Altura intrínseca para otimização de imagem
+              className="rounded-lg shadow-md w-full h-auto object-cover"
+            />
+          </div>
+
+          {/* Texto e Botão (Direita em ecrãs grandes, Baixo em ecrãs pequenos) */}
+          <div className="md:order-2 text-center md:text-left">
+            <h2 className="text-3xl font-bold text-[var(--foreground)] mb-4">Precisa de Ajuda ou Tem Dúvidas?</h2>
+            <p className="text-lg text-gray-500 mb-6">
+              Estamos aqui para ajudar! Se tiver alguma questão, sugestão ou quiser saber mais sobre os nossos eventos, não hesite em entrar em contacto.
+            </p>
+            <Link href="/contact" passHref>
+              <button className="inline-flex justify-center items-center py-3 px-8 text-base font-medium text-center text-white rounded-lg bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] focus:ring-4 focus:ring-[var(--accent-color-light)] transition duration-300 shadow-md">
+                Fale Connosco
+              </button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Secção "Próximos Eventos" com Scroll Horizontal de Cards */}
       <section className="py-12 bg-[var(--background)]">
         <h2 className="text-3xl font-bold text-[var(--foreground)] text-center mb-8 px-4">Próximos Eventos</h2>
         {loading ? (
