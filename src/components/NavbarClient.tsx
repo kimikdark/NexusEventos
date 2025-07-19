@@ -1,10 +1,11 @@
 // src/components/NavbarClient.tsx
-'use client'; // Marcar como Client Component
+'use client';
 
-import { useState, useEffect } from 'react'; // Importar hooks
+import { useState, useEffect } from 'react';
 import { Navbar, NavbarBrand, NavbarToggle, NavbarCollapse, NavbarLink } from 'flowbite-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Importar useRouter para navegação programática
+import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface NavLink {
   id: number;
@@ -15,40 +16,47 @@ interface NavLink {
 
 export default function NavbarClient({ navLinks }: { navLinks: NavLink[] }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const router = useRouter(); // Inicializar useRouter
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Verifica o status de login ao montar o componente
   useEffect(() => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('jwt');
-    console.log('Token JWT no localStorage:', token);// Verifica o token no localStorage
-    setIsLoggedIn(!!token);
-    console.log('isLoggedIn:', !!token);// Atualiza o estado de login com base na presença do token
-  }
-}, []);
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('jwt');
+      console.log('NavbarClient: Token JWT no localStorage:', token ? 'Presente' : 'Ausente (ao montar)');
+      setIsLoggedIn(!!token);
+      console.log('NavbarClient: isLoggedIn (após verificação ao montar):', !!token);
+    }
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('jwt'); // Remove o token
-    setIsLoggedIn(false); // Atualiza o estado de login
-    router.push('/admin/login'); // Redireciona para a página de login
+    localStorage.removeItem('jwt');
+    setIsLoggedIn(false);
+    router.push('/admin/login');
   };
 
   const handleLoginClick = () => {
-    router.push('/admin/login'); // Redireciona para a página de login
+    router.push('/admin/login');
   };
 
   return (
-    <Navbar fluid rounded className="bg-[var(--accent-color)] text-[var(--background)] p-4 shadow-md">
+    <Navbar fluid rounded className="bg-[var(--accent-color)] text-white p-4 shadow-md">
       <NavbarBrand as={Link} href="/">
+        {/* LOGOTIPO: Ajuste de dimensões para proporção 2048x1347 */}
+        <Image
+          src="/images/NexusEventos.png" // Caminho para o teu logotipo.
+          alt="Nexus Events Logotipo"
+          width={60}  // Nova Largura proporcional (aprox. 60.8 arredondado para 60)
+          height={40} // Nova Altura proporcional (aprox. 39.47 arredondado para 40)
+          className="mr-3 h-auto" // Remover h-6 sm:h-9 para que width/height do Image tomem precedência. h-auto para manter proporção.
+        />
         <span className="self-center whitespace-nowrap text-xl font-semibold dark:text-white">Nexus Events</span>
       </NavbarBrand>
 
-      <div className="flex md:order-2 items-center space-x-4"> {/* Container para o botão de login/logout */}
+      <div className="flex md:order-2 items-center space-x-4">
         {isLoggedIn ? (
           <>
-            {/* O Link para o Dashboard pode continuar assim, pois é um Link simples */}
             <Link href="/admin/dashboard" className="text-white hover:text-[var(--secondary-accent)] mr-2 md:mr-0">
-                Dashboard
+              Dashboard
             </Link>
             <button
               onClick={handleLogout}
@@ -58,26 +66,26 @@ export default function NavbarClient({ navLinks }: { navLinks: NavLink[] }) {
             </button>
           </>
         ) : (
-          // CORREÇÃO AQUI: Chamar router.push no onClick do botão
           <button
-            onClick={handleLoginClick} // Usa a nova função para navegar
+            onClick={handleLoginClick}
             className="bg-[var(--secondary-background)] text-white px-4 py-2 rounded-md hover:bg-[var(--secondary-accent)] transition-colors duration-300"
           >
             Login
           </button>
         )}
-        <NavbarToggle /> {/* O toggle deve vir depois dos elementos extras no md:order-2 */}
+        <NavbarToggle />
       </div>
 
       <NavbarCollapse>
         {navLinks
-          .sort((a, b) => (a.order || 0) - (b.order || 0)) // Ordena os links
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
           .map((link) => (
             <NavbarLink
               key={link.id}
               as={Link}
               href={link.path}
-              className="text-[var(--background)] hover:text-[var(--secondary-accent)] dark:text-[var(--foreground)] dark:hover:text-[var(--secondary-accent)]"
+              active={pathname === link.path || (link.path.startsWith('/#') && pathname === '/')}
+              className="text-white hover:text-[var(--secondary-accent)] dark:text-white dark:hover:text-[var(--secondary-accent)]"
             >
               {link.title}
             </NavbarLink>

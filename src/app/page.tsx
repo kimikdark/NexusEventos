@@ -45,7 +45,7 @@ interface Event {
 
 // Função assíncrona para buscar e processar os eventos do Strapi
 async function getEvents(): Promise<Event[]> {
-  console.log("Tentando buscar eventos do Strapi para a página inicial...");
+  console.log("A tentar buscar eventos do Strapi para a página inicial...");
   try {
     const res = await fetch(`${STRAPI_URL}/api/eventos?populate=*`, {
       cache: 'no-store',
@@ -125,6 +125,8 @@ export default function Home() {
 
   return (
     <main>
+      <br></br>
+      <br></br>
       {/* 1. Secção do Banner de Imagem */}
       <section className="relative w-full h-[400px] overflow-hidden">
         <Image
@@ -165,7 +167,8 @@ export default function Home() {
       </section>
 
       {/* 3. Nova Secção: Sobre o Negócio */}
-      <section className="py-12 px-4 mx-auto max-w-screen-xl bg-[var(--background)]">
+      {/* Adicionado id="about-us" aqui para o link de âncora funcionar na Navbar */}
+      <section id="about-us" className="py-12 px-4 mx-auto max-w-screen-xl bg-[var(--background)]">
         <h2 className="text-3xl font-bold text-[var(--foreground)] text-center mb-8">Sobre o Nexus Events</h2>
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="md:order-2">
@@ -193,7 +196,6 @@ export default function Home() {
         <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Imagem Placeholder (Esquerda em ecrãs grandes, Topo em ecrãs pequenos) */}
           <div className="md:order-1"> {/* Ordem explícita para responsividade */}
-            {/* Certifica-te de ter esta imagem em public/images/ ou usa um placeholder online */}
             <Image
               src="/images/call.jpg" // Exemplo de imagem, ajusta o caminho ou usa URL
               alt="Pessoas em contacto, ilustração de apoio"
