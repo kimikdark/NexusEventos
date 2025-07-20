@@ -125,8 +125,7 @@ export default function Home() {
 
   return (
     <main>
-      <br></br>
-      <br></br>
+
       {/* 1. Secção do Banner de Imagem */}
       <section className="relative w-full h-[400px] overflow-hidden">
         <Image
@@ -136,7 +135,7 @@ export default function Home() {
           style={{ objectFit: 'cover' }}
           className="absolute inset-0"
           priority
-          sizes="100vw"
+          sizes="100vw" // Adicionado para otimização com fill
         />
         <div className="absolute inset-0 bg-black opacity-30"></div>
       </section>

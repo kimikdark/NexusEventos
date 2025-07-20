@@ -3,126 +3,104 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Spinner } from 'flowbite-react'; // Mantenha o Spinner, pois é usado na UI
 
 const STRAPI_URL = 'http://localhost:1337'; // Ajusta se o teu Strapi estiver noutro endereço
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError(null);
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    console.log('handleLogin: Botão de Entrar clicado.');
 
-  console.log('Tentando login com Email:', email); // Adiciona esta linha
-  console.log('Tentando login com Password:', password ? '********' : 'Vazio'); // Adiciona esta linha (esconde a password por segurança)
+    try {
+      console.log('handleLogin: A enviar requisição para Strapi...');
+      const res = await fetch(`${STRAPI_URL}/api/auth/local`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, password }),
+      });
 
-  try {
-    const res = await fetch(`${STRAPI_URL}/api/auth/local`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        identifier: email,
-        password: password,
-      }),
-    });
-    
-      // Se a resposta NÃO for OK (por exemplo, 400, 401, 500)
-      if (!res.ok) {
-        // Tenta ler a resposta como texto primeiro para depuração profunda
-        const errorText = await res.text();
-        console.error('Erro de login (resposta RAW - não OK):', errorText); // Loga a resposta bruta para depuração
+      const data = await res.json();
+      console.log('handleLogin: Resposta recebida do Strapi, status:', res.status);
 
-        try {
-            // Tenta fazer parse do texto como JSON. Se for vazio ou inválido, resultará em {}.
-            const errorData = errorText ? JSON.parse(errorText) : {};
-            let errorMessage = 'Credenciais inválidas ou erro desconhecido.'; // Mensagem de fallback
-
-            // Tenta extrair a mensagem de erro da estrutura comum do Strapi
-            if (errorData && typeof errorData === 'object' && 'error' in errorData) {
-                if (errorData.error && typeof errorData.error === 'object' && 'message' in errorData.error) {
-                    errorMessage = errorData.error.message;
-                } else if ('message' in errorData) { // Alguns erros do Strapi podem ter 'message' diretamente no root
-                    errorMessage = errorData.message;
-                }
-            }
-            setError(errorMessage);
-        } catch (jsonParseError) {
-            // Se falhar ao fazer parse do JSON, é um erro inesperado no formato da resposta
-            console.error('Erro ao fazer parse da resposta de erro como JSON:', jsonParseError);
-            setError('Ocorreu um erro inesperado ao processar a resposta do servidor (formato inválido).');
+      if (res.ok) {
+        console.log('handleLogin: Login bem-sucedido. Dados recebidos:', data);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('jwt', data.jwt);
+          localStorage.setItem('user', JSON.stringify(data.user)); // Armazena os dados do utilizador também
+          console.log('handleLogin: JWT e user armazenados no localStorage.');
         }
 
-        setLoading(false);
-        return; // Sai da função, pois houve um erro de autenticação
-      }
-
-      // Se a resposta for OK (status 200), processa a resposta de sucesso
-      const data = await res.json();
-      localStorage.setItem('jwt', data.jwt); // Armazena o JWT no localStorage
-      localStorage.setItem('user', JSON.stringify(data.user)); // Armazena os dados do utilizador
-
-      setLoading(false);
-      console.log('Login bem-sucedido. Redirecionando para /admin/dashboard...'); // Para depuração
-      router.push('/admin/dashboard'); // Redireciona para o dashboard
-
-    } catch (err: any) {
-      // Captura erros de rede (ex: servidor Strapi não acessível) ou JSON inválido após um res.ok
-      console.error('Erro de rede ou desconhecido (catch geral):', err);
-      if (err instanceof SyntaxError) {
-          setError('Ocorreu um erro ao processar a resposta do servidor (JSON inválido na resposta de sucesso).');
+        // Redireciona para o dashboard após login bem-sucedido
+        console.log('handleLogin: Redirecionando para /admin/dashboard.');
+        router.replace('/admin/dashboard'); // Use router.replace para evitar voltar para o login com o botão back
       } else {
-          setError(err.message || 'Ocorreu um erro inesperado. Tente novamente.');
+        console.error('handleLogin: Falha no login:', data.error);
+        setError(data.error?.message || 'Erro ao fazer login. Verifique as suas credenciais.');
       }
+    } catch (err: any) {
+      console.error('handleLogin: Erro de rede ou parsing durante o login:', err);
+      setError(err.message || 'Ocorreu um erro de rede. Tente novamente.');
+    } finally {
       setLoading(false);
+      console.log('handleLogin: Processo de login concluído.');
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="bg-[var(--secondary-background)] p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">Login do Administrador</h1>
-        <form onSubmit={handleLogin} className="space-y-6">
+    <section className="flex items-center justify-center min-h-screen bg-[var(--background)]">
+      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h2 className="text-3xl font-bold text-[var(--foreground)] text-center mb-6">Login do Administrador</h2>
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300">Email:</label>
+            <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">Email/Username:</label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              id="identifier"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] bg-gray-800 text-white placeholder-gray-400"
-              disabled={loading}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] sm:text-sm text-gray-900"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300">Password:</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password:</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] bg-gray-800 text-white placeholder-gray-400"
-              disabled={loading}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] sm:text-sm text-gray-900"
             />
           </div>
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)] transition duration-300 disabled:opacity-50"
             disabled={loading}
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)] transition duration-300 disabled:opacity-50"
           >
-            {loading ? 'A Entrar...' : 'Entrar'}
+            {loading ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                A Entrar...
+              </>
+            ) : (
+              'Entrar'
+            )}
           </button>
         </form>
       </div>
-    </div>
+    </section>
   );
 }

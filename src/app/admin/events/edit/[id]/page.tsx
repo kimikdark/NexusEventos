@@ -9,7 +9,7 @@ const STRAPI_URL = 'http://localhost:1337'; // URL do teu Strapi
 
 interface EventDetailPageProps {
   params: {
-    id: string; // O ID do evento virá da URL (ex: /admin/events/edit/123)
+    id: string;
   };
 }
 
@@ -25,13 +25,13 @@ export default function EditEventPage({ params }: EventDetailPageProps) {
       const jwt = localStorage.getItem('jwt');
       if (!jwt) {
         setError('Não autenticado. Por favor, faça login.');
-        router.push('/login');
+        router.push('/admin/login'); // Corrigido para /admin/login
         setLoading(false);
         return;
       }
 
       try {
-        const res = await fetch(`${STRAPI_URL}/api/eventos/${id}?populate=*`, { // Usa populate para obter a imagem
+        const res = await fetch(`${STRAPI_URL}/api/eventos/${id}?populate=image`, { // Usar 'populate=image' é mais específico
           headers: {
             'Authorization': `Bearer ${jwt}`,
           },
@@ -39,25 +39,32 @@ export default function EditEventPage({ params }: EventDetailPageProps) {
         });
 
         if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem('jwt');
+            router.push('/admin/login');
+            return;
+          }
           const errorData = await res.json();
-          // DEBUG: Log do erro da API ao buscar o evento
           console.error("EditEventPage: Erro da API ao buscar evento para edição:", errorData);
           throw new Error(errorData.error?.message || `Erro HTTP: ${res.status} ${res.statusText}`);
         }
 
         const apiResponse = await res.json();
-        // **CORREÇÃO AQUI:** Aceder aos atributos e à URL da imagem
-        const eventAttributes = apiResponse.data.attributes;
+        // VERIFICAÇÃO CRÍTICA: Certificar-se de que apiResponse.data e apiResponse.data.attributes existem
+        const eventData = apiResponse.data;
 
-        if (!eventAttributes) {
-          setError('Dados do evento não encontrados.');
+        if (!eventData || !eventData.attributes) {
+          setError('Dados do evento não encontrados ou em formato inesperado.');
           setLoading(false);
           return;
         }
 
+        const eventAttributes = eventData.attributes;
+
+        // Aceder à URL da imagem com segurança
         const imageUrl = eventAttributes.image?.data?.attributes?.url
           ? `${STRAPI_URL}${eventAttributes.image.data.attributes.url}`
-          : undefined;
+          : undefined; // Ou uma imagem de fallback padrão, se preferir
 
         setInitialEventData({
           title: eventAttributes.title || '',
@@ -66,11 +73,11 @@ export default function EditEventPage({ params }: EventDetailPageProps) {
           location: eventAttributes.location || '',
           totalVagas: eventAttributes.totalVagas ?? 0,
           vagasOcupadas: eventAttributes.vagasOcupadas ?? 0,
-          imageUrl: imageUrl,
+          imageUrl: imageUrl, // Passa a URL para o EventForm
           status: eventAttributes.status || 'draft',
         });
       } catch (err: any) {
-        console.error('EditEventPage: Erro ao carregar dados do evento para edição (catch principal):', err);
+        console.error('EditEventPage: Erro ao carregar dados do evento para edição:', err);
         setError(err.message || 'Falha ao carregar evento.');
       } finally {
         setLoading(false);
@@ -85,17 +92,27 @@ export default function EditEventPage({ params }: EventDetailPageProps) {
   const handleUpdateEvent = async (formData: EventFormData, imageFile?: File | null) => {
     const jwt = localStorage.getItem('jwt');
     if (!jwt) {
+      // Já é tratado no fetchEventData, mas boa prática ter aqui também.
       throw new Error('Não autenticado. Por favor, faça login.');
     }
 
     const data = new FormData();
     data.append('data', JSON.stringify(formData));
 
-    if (imageFile) {
-      data.append('files.image', imageFile); // Se um novo ficheiro de imagem for selecionado
+    // Lógica para lidar com imageFile:
+    if (imageFile instanceof File) {
+      // Um novo arquivo foi selecionado, anexar.
+      data.append('files.image', imageFile);
+    } else if (imageFile === null) {
+        if (formData.imageUrl === undefined) { // Se a URL de imagem no form data é undefined, indica que foi removida
+            const currentData = JSON.parse(data.get('data') as string);
+            data.set('data', JSON.stringify({ ...currentData, image: null })); // Força a remoção no Strapi
+        }
     }
+    // Se imageFile for undefined, significa que não houve alteração no arquivo.
+    // Neste caso, não adicionamos 'files.image' ao FormData, mantendo a imagem existente.
 
-    // DEBUG: Log do FormData antes de enviar para o Strapi
+
     console.log('EditEventPage: FormData a ser enviado para o Strapi (PUT):');
     for (let [key, value] of data.entries()) {
         if (key === 'data') {
@@ -111,10 +128,9 @@ export default function EditEventPage({ params }: EventDetailPageProps) {
 
     try {
       const res = await fetch(`${STRAPI_URL}/api/eventos/${id}`, {
-        method: 'PUT', // Método PUT para atualização
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${jwt}`,
-          // REMOVIDO: 'Content-Type'
         },
         body: data,
       });
@@ -127,7 +143,7 @@ export default function EditEventPage({ params }: EventDetailPageProps) {
 
       const responseData = await res.json();
       console.log('EditEventPage: Evento atualizado com sucesso:', responseData);
-      router.push('/admin/events'); // Redireciona de volta para a lista de eventos
+      router.push('/admin/events');
     } catch (err: any) {
       console.error('EditEventPage: Falha ao atualizar evento (catch principal):', err);
       throw err;
@@ -146,6 +162,9 @@ export default function EditEventPage({ params }: EventDetailPageProps) {
     return (
       <div className="text-center p-4 text-red-500 text-lg">
         <p>{error}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] text-white font-bold py-2 px-4 rounded-md transition duration-300">
+            Tentar Novamente (Recarregar Página)
+        </button>
       </div>
     );
   }

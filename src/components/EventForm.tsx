@@ -2,15 +2,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// Importante: useRouter não é necessário aqui, pois a navegação é tratada nas páginas parent.
-// Se estiver importado, certifique-se de que não está a ser usado incorretamente.
-
-const STRAPI_URL = 'http://localhost:1337'; // URL do teu Strapi
 
 interface EventFormProps {
-  initialData?: EventFormData; // Dados iniciais para edição (opcional)
-  onSave: (event: EventFormData, imageFile?: File | null) => Promise<void>; // Função para salvar
-  isEditing: boolean; // Indica se o formulário está em modo de edição
+  initialData?: EventFormData;
+  onSave: (event: EventFormData, imageFile?: File | null) => Promise<void>;
+  isEditing: boolean;
 }
 
 export interface EventFormData {
@@ -35,12 +31,14 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
     status: 'draft',
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | undefined>(initialData?.imageUrl); // Novo estado para pré-visualização
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
+      setPreviewImageUrl(initialData.imageUrl); // Define a URL de pré-visualização inicial
     }
   }, [initialData]);
 
@@ -54,10 +52,23 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setImageFile(file);
+      setPreviewImageUrl(URL.createObjectURL(file)); // Cria URL para pré-visualização do novo arquivo
     } else {
       setImageFile(null);
+      // Se o utilizador limpar o input de arquivo, e não estiver em edição (ou seja, novo evento), limpa a pré-visualização.
+      // Se estiver em edição, manterá a imagem existente até que seja explicitamente removida.
+      if (!isEditing) {
+        setPreviewImageUrl(undefined);
+      }
     }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null); // Indica que a imagem deve ser removida no PUT
+    setPreviewImageUrl(undefined); // Limpa a pré-visualização
+    setFormData(prev => ({ ...prev, imageUrl: undefined })); // Limpa o imageUrl do formData
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,22 +76,39 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
     setLoading(true);
     setError(null);
 
-    // DEBUG: Log para ver o formData antes de enviar
     console.log('EventForm: formData a ser enviado:', formData);
     console.log('EventForm: imageFile a ser enviado:', imageFile);
 
     try {
-      await onSave(formData, imageFile); // Chama a função onSave passada pelas props (que está nas páginas new/edit)
+      // Aqui, garantimos que a data é um formato ISO válido ANTES de enviar para a API
+      const formDataToSend = { ...formData };
+      if (formDataToSend.date) {
+        try {
+            const parsedDate = new Date(formDataToSend.date);
+            if (!isNaN(parsedDate.getTime())) {
+                formDataToSend.date = parsedDate.toISOString();
+            } else {
+                throw new Error("Formato de data inválido.");
+            }
+        } catch (dateError: any) {
+            console.error("EventForm: Erro ao formatar data:", dateError);
+            throw new Error(dateError.message || "Por favor, insira uma data e hora válidas.");
+        }
+      }
+
+      await onSave(formDataToSend, imageFile); // Passa o formData formatado e o imageFile
       alert(isEditing ? 'Evento atualizado com sucesso!' : 'Evento criado com sucesso!');
       if (!isEditing) {
+        // Reset do formulário apenas para criação de novo evento
         setFormData({
           title: '', description: '', date: '', location: '', totalVagas: 0, vagasOcupadas: 0, status: 'draft'
         });
         setImageFile(null);
+        setPreviewImageUrl(undefined);
       }
     } catch (err: any) {
       console.error('EventForm: Erro ao salvar evento:', err);
-      setError(err.message || 'Falha ao salvar evento. Verifique a consola para detalhes.'); // Mensagem mais útil
+      setError(err.message || 'Falha ao salvar evento. Verifique a consola para detalhes.');
     } finally {
       setLoading(false);
     }
@@ -88,6 +116,7 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-6 bg-white rounded-lg shadow-md">
+      {/* Campos do formulário (Título, Descrição, Data, Local, Vagas, Status) - Mantenha como estão */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700">Título:</label>
         <input
@@ -120,7 +149,8 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
           type="datetime-local"
           id="date"
           name="date"
-          value={formData.date ? formData.date.substring(0, 16) : ''}
+          // Garante que o valor do input é formatado para 'YYYY-MM-DDTHH:MM'
+          value={formData.date ? new Date(formData.date).toISOString().slice(0, 16) : ''}
           onChange={handleChange}
           required
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] text-gray-900"
@@ -183,6 +213,7 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
         </select>
       </div>
 
+      {/* Campo Imagem com pré-visualização */}
       <div>
         <label htmlFor="image" className="block text-sm font-medium text-gray-700">Imagem do Evento:</label>
         <input
@@ -193,13 +224,21 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSave, isEditing })
           onChange={handleImageChange}
           className="mt-1 block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[var(--accent-color)] file:text-white hover:file:bg-[var(--secondary-accent)]"
         />
-        {isEditing && formData.imageUrl && !imageFile && (
-          <p className="mt-2 text-sm text-gray-500">
-            Imagem atual: <a href={formData.imageUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--accent-color)] hover:underline">Ver Imagem</a>
-          </p>
+        {previewImageUrl && (
+          <div className="mt-2 relative w-40 h-40"> {/* Adicionado w-40 h-40 para tamanho fixo */}
+            <img src={previewImageUrl} alt="Preview" className="w-full h-full object-cover rounded-md border border-gray-300" />
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-500 text-white rounded-full p-1 text-xs font-bold hover:bg-red-600 transition duration-200"
+              title="Remover imagem"
+            >
+              X
+            </button>
+          </div>
         )}
-        {imageFile && (
-          <p className="mt-2 text-sm text-gray-500">Nova imagem selecionada: {imageFile.name}</p>
+        {isEditing && !previewImageUrl && (initialData?.imageUrl || imageFile === null) && (
+             <p className="mt-2 text-sm text-gray-500">Nenhuma imagem definida para este evento. Selecione uma.</p>
         )}
       </div>
 

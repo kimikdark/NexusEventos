@@ -1,65 +1,67 @@
 // src/components/AdminSidebar.tsx
-'use client'; // Essencial se este componente usar hooks ou for interativo
+'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Importar usePathname e useRouter para destacar o link ativo e redirecionar
+import { usePathname } from 'next/navigation';
 
-export default function AdminSidebar() {
-  const pathname = usePathname(); // Hook para obter o caminho atual
-  const router = useRouter();
+interface AdminSidebarProps {
+  onLogout: () => void; // A prop que o AdminLayout está a passar
+}
 
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('jwt'); // Remove o token JWT
-      localStorage.removeItem('user'); // Remove info do usuário, se houver
-    }
-    router.push('/admin/login'); // Redireciona para a página de login
+export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
+  const pathname = usePathname();
+
+  const getLinkClasses = (path: string) => {
+    // Verifica se o caminho atual corresponde ao link, ou se é um prefixo para rotas aninhadas
+    const isActive = pathname === path || (path !== '/admin/dashboard' && pathname.startsWith(path));
+    return `
+      flex items-center p-2 text-white rounded-lg text-lg
+      ${isActive ? 'bg-gray-700 font-bold' : 'hover:bg-gray-700'}
+      transition-colors duration-200
+    `;
   };
 
-  const linkClasses = (path: string) =>
-    `flex items-center px-4 py-2 rounded-md transition-colors duration-200 ${
-      pathname === path
-        ? 'bg-[var(--accent-color)] text-white font-semibold' // Classe para link ativo
-        : 'text-gray-300 hover:bg-gray-700 hover:text-white' // Classe para link inativo
-    }`;
-
   return (
-    <aside className="w-64 bg-[var(--secondary-background)] text-white p-6 flex flex-col">
-      <div className="text-2xl font-bold mb-8 text-[var(--accent-color)]">Admin Dashboard</div>
-      <nav className="flex-grow">
-        <ul className="space-y-2">
-          <li>
-            <Link href="/admin/dashboard" passHref legacyBehavior>
-              <a className={linkClasses('/admin/dashboard')}>
-                Dashboard
-              </a>
-            </Link>
-          </li>
-          <li>
-            <Link href="/admin/events" passHref legacyBehavior>
-              <a className={linkClasses('/admin/events')}>
-                Gerir Eventos
-              </a>
-            </Link>
-          </li>
-          {/* NOVO LINK AQUI: */}
-          <li>
-            <Link href="/admin/inscriptions" passHref legacyBehavior>
-              <a className={linkClasses('/admin/inscriptions')}>
-                Ver Inscrições
-              </a>
-            </Link>
-          </li>
-        </ul>
-      </nav>
-      <div className="mt-auto"> {/* Empurra o botão Sair para o fundo */}
-        <button
-          onClick={handleLogout}
-          className="w-full bg-red-600 text-white font-bold py-2 px-4 rounded-md hover:bg-red-700 transition-colors duration-200"
-        >
-          Sair
-        </button>
-      </div>
-    </aside>
+    <nav className="w-64 flex-shrink-0 bg-gray-800 text-white p-4">
+      <ul className="space-y-2">
+        {/* Dashboard Link */}
+        <li>
+          <Link href="/admin/dashboard" className={getLinkClasses('/admin/dashboard')}>
+            Dashboard
+          </Link>
+        </li>
+
+        {/* Events Link */}
+        <li>
+          <Link href="/admin/events" className={getLinkClasses('/admin/events')}>
+            Eventos
+          </Link>
+        </li>
+
+        {/* Inscriptions Link */}
+        <li>
+          <Link href="/admin/inscriptions" className={getLinkClasses('/admin/inscriptions')}>
+            Inscrições
+          </Link>
+        </li>
+
+        {/* Messages Link */}
+        <li>
+          <Link href="/admin/messages" className={getLinkClasses('/admin/messages')}>
+            Mensagens
+          </Link>
+        </li>
+
+        {/* Botão de Logout */}
+        <li>
+          <button
+            onClick={onLogout} // Chama a prop onLogout fornecida pelo AdminLayout
+            className="w-full text-left flex items-center p-2 text-white hover:bg-red-700 rounded-lg text-lg transition-colors duration-200 mt-auto" // mt-auto para empurrar para o fundo
+          >
+            Sair
+          </button>
+        </li>
+      </ul>
+    </nav>
   );
 }

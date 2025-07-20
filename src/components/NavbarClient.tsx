@@ -14,24 +14,33 @@ interface NavLink {
   order?: number;
 }
 
-export default function NavbarClient({ navLinks }: { navLinks: NavLink[] }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+interface NavbarClientProps {
+  navLinks: NavLink[];
+}
+
+export default function NavbarClient({ navLinks }: NavbarClientProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('jwt');
-      console.log('NavbarClient: Token JWT no localStorage:', token ? 'Presente' : 'Ausente (ao montar)');
-      setIsLoggedIn(!!token);
-      console.log('NavbarClient: isLoggedIn (após verificação ao montar):', !!token);
+      const jwt = localStorage.getItem('jwt');
+      const authStatus = !!jwt;
+      setIsAuthenticated(authStatus);
+      console.log('NavbarClient: JWT status from localStorage (ao montar):', authStatus ? 'Presente' : 'Ausente');
     }
-  }, []);
+  }, []); // Executa apenas uma vez na montagem
 
-  const handleLogout = () => {
-    localStorage.removeItem('jwt');
-    setIsLoggedIn(false);
-    router.push('/admin/login');
+  const handleLogoutClick = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('jwt');
+      localStorage.removeItem('user');
+    }
+    setIsAuthenticated(false);
+    router.push('/'); // Redireciona para a home após logout
+    console.log('NavbarClient: User logged out.');
   };
 
   const handleLoginClick = () => {
@@ -41,37 +50,39 @@ export default function NavbarClient({ navLinks }: { navLinks: NavLink[] }) {
   return (
     <Navbar fluid rounded className="bg-[var(--accent-color)] text-white p-4 shadow-md">
       <NavbarBrand as={Link} href="/">
-        {/* LOGOTIPO: Ajuste de dimensões para proporção 2048x1347 */}
         <Image
-          src="/images/NexusEventos.png" // Caminho para o teu logotipo.
+          src="/images/Logo.png"
           alt="Nexus Events Logotipo"
-          width={60}  // Nova Largura proporcional (aprox. 60.8 arredondado para 60)
-          height={40} // Nova Altura proporcional (aprox. 39.47 arredondado para 40)
-          className="mr-3 h-auto" // Remover h-6 sm:h-9 para que width/height do Image tomem precedência. h-auto para manter proporção.
+          width={150}
+          height={90}
+          className="mr-3 h-auto max-h-24 flex-shrink-0"
+          priority
+          sizes="150px" // Adicionado sizes para otimização com width/height
         />
-        <span className="self-center whitespace-nowrap text-xl font-semibold dark:text-white">Nexus Events</span>
       </NavbarBrand>
 
       <div className="flex md:order-2 items-center space-x-4">
-        {isLoggedIn ? (
+        {isAuthenticated ? (
           <>
-            <Link href="/admin/dashboard" className="text-white hover:text-[var(--secondary-accent)] mr-2 md:mr-0">
+            <Link href="/admin/dashboard" className="text-white hover:text-[var(--secondary-accent)] mr-2 md:mr-0 text-lg">
               Dashboard
             </Link>
             <button
-              onClick={handleLogout}
-              className="bg-[var(--secondary-background)] text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors duration-300"
+              onClick={handleLogoutClick}
+              className="bg-[var(--secondary-background)] text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors duration-300 text-lg"
             >
               Logout
             </button>
           </>
         ) : (
-          <button
-            onClick={handleLoginClick}
-            className="bg-[var(--secondary-background)] text-white px-4 py-2 rounded-md hover:bg-[var(--secondary-accent)] transition-colors duration-300"
-          >
-            Login
-          </button>
+          pathname !== '/admin/login' && (
+            <button
+              onClick={handleLoginClick}
+              className="bg-[var(--secondary-background)] text-white px-4 py-2 rounded-md hover:bg-[var(--secondary-accent)] transition-colors duration-300 text-lg"
+            >
+              Login
+            </button>
+          )
         )}
         <NavbarToggle />
       </div>
@@ -85,7 +96,7 @@ export default function NavbarClient({ navLinks }: { navLinks: NavLink[] }) {
               as={Link}
               href={link.path}
               active={pathname === link.path || (link.path.startsWith('/#') && pathname === '/')}
-              className="text-white hover:text-[var(--secondary-accent)] dark:text-white dark:hover:text-[var(--secondary-accent)]"
+              className="text-white hover:text-[var(--secondary-accent)] dark:text-white dark:hover:text-[var(--secondary-accent)] text-lg"
             >
               {link.title}
             </NavbarLink>
