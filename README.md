@@ -83,73 +83,59 @@ Este projeto é um sistema web para gerir eventos, com um frontend para clientes
     ```
     O frontend estará em `http://localhost:3000`.
 
----
 ## Estrutura do Projeto
-C:\temp\Nexus Eventos\
-├── backend/
-│   └── (conteúdo do projeto Strapi)
-├── frontend/             # Este é o diretório que a estrutura acima representa
-│   └── (conteúdo do projeto Next.js)
-└── README.md
 
+O projeto é dividido em duas pastas principais: `backend` para o Strapi e `frontend` para o Next.js.
 
-.
-├── .flowbite-react/          # Possíveis componentes de UI de Flowbite para React
-├── .next/                    # Build output do Next.js
-├── .vscode/                  # Configurações do VS Code
-├── node_modules/             # Dependências do Node.js
-├── public/                   # Ficheiros estáticos acessíveis diretamente
-│   └── favicon.ico           # Ícone do site
-├── src/                      # Código fonte da aplicação
-│   ├── app/                  # Diretório do Next.js App Router
-│   │   ├── admin/            # Rotas e componentes da área de administração
-│   │   │   ├── dashboard/
-│   │   │   │   └── page.tsx        # Página do Dashboard do Admin
-│   │   │   ├── events/             # Gestão de Eventos (Admin)
-│   │   │   │   ├── edit/[id]/
-│   │   │   │   │   └── page.tsx    # Página de edição de um evento específico
-│   │   │   │   ├── new/
-│   │   │   │   │   └── page.tsx    # Página para adicionar novo evento
-│   │   │   │   └── page.tsx        # Página de listagem de eventos (Admin)
-│   │   │   ├── inscriptions/       # Gestão de Inscrições (Admin)
-│   │   │   │   └── page.tsx        # Página de listagem de inscrições (Admin)
-│   │   │   ├── login/
-│   │   │   │   └── page.tsx        # Página de Login do Admin
-│   │   │   ├── messages/           # Gestão de Mensagens (Admin)
-│   │   │   │   └── page.tsx        # Página de listagem de mensagens (Admin)
-│   │   │   ├── layout.tsx          # Layout específico para as rotas de administração
-│   │   │   └── page.tsx            # (Possível) Página inicial de admin ou redirect
-│   │   ├── contact/
-│   │   │   └── page.tsx            # Página de Contactos (do lado do cliente)
-│   │   ├── events/                 # Rotas de eventos para o lado do cliente
-│   │   │   ├── [id]/               # Detalhes de um evento específico
-│   │   │   │   ├── register/
-│   │   │   │   │   └── page.tsx    # Formulário de inscrição para o evento
-│   │   │   │   └── page.tsx        # Página de detalhes do evento
-│   │   │   └── page.tsx            # Página de listagem de eventos (Cliente)
-│   │   ├── page.tsx                # Página inicial (Home) do cliente
-│   │   ├── globals.css             # Estilos CSS globais
-│   │   └── layout.tsx              # Layout principal da aplicação
-│   └── components/           # Componentes React reutilizáveis
-│       ├── AdminSidebar.tsx
-│       ├── ContactInfo.tsx
-│       ├── EventCard.tsx
-│       ├── EventForm.tsx
-│       ├── Footer.tsx
-│       ├── Navbar.tsx
-│       └── NavbarClient.tsx
-├── .env.local                # Variáveis de ambiente locais (ex: NEXT_PUBLIC_STRAPI_API_URL)
-├── .gitignore                # Ficheiro para ignorar pastas e ficheiros no Git
-├── del
-├── eslint.config.mjs         # Configuração do ESLint
-├── middlewares.js            # Ficheiro de middlewares (para o Next.js, se estiver a usar)
-├── next-env.d.ts             # Definições de ambiente para Next.js
-├── next.config.mjs           # Configuração do Next.js
-├── npm
-├── package-lock.json         # Bloqueio de dependências do npm
-├── package.json              # Metadados do projeto e scripts
-├── postcss.config.mjs        # Configuração do PostCSS
-├── rd
-├── README.md                 # O ficheiro README do projeto
-├── tailwind.config.js        # Configuração do Tailwind CSS
-└── tsconfig.json             # Configuração do TypeScript
+C:\temp\Nexus Eventos
+
+├── backend/                  # Projeto Strapi
+│   └── (conteúdo do projeto Strapi, incluindo config/middlewares.js)
+├── frontend/                 # Projeto Next.js (estrutura detalhada abaixo)
+│   ├── .flowbite-react/      # Componentes UI de Flowbite para React
+│   ├── .next/                # Build output do Next.js
+│   ├── .vscode/              # Configurações do VS Code
+│   ├── node_modules/         # Dependências do Node.js
+│   ├── public/               # Ficheiros estáticos
+│   │   └── favicon.ico
+│   ├── src/                  # Código fonte da aplicação
+│   │   ├── app/              # Next.js App Router
+│   │   │   ├── admin/        # Rotas da área de administração
+│   │   │   │   ├── dashboard/page.tsx
+│   │   │   │   ├── events/
+│   │   │   │   │   ├── edit/[id]/page.tsx
+│   │   │   │   │   ├── new/page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── inscriptions/page.tsx
+│   │   │   │   ├── login/page.tsx
+│   │   │   │   ├── messages/page.tsx
+│   │   │   │   └── layout.tsx
+│   │   │   ├── contact/page.tsx
+│   │   │   ├── events/       # Rotas de eventos para clientes
+│   │   │   │   ├── [id]/
+│   │   │   │   │   ├── register/page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── page.tsx      # Página inicial (Home)
+│   │   │   ├── globals.css
+│   │   │   └── layout.tsx    # Layout principal da aplicação
+│   │   └── components/       # Componentes React reutilizáveis
+│   │       ├── AdminSidebar.tsx
+│   │       ├── ContactInfo.tsx
+│   │       ├── EventCard.tsx
+│   │       ├── EventForm.tsx
+│   │       ├── Footer.tsx
+│   │       ├── Navbar.tsx
+│   │       └── NavbarClient.tsx
+│   ├── .env.local            # Variáveis de ambiente locais
+│   ├── .gitignore
+│   ├── eslint.config.mjs
+│   ├── middlewares.js        # Possível ficheiro de middlewares para Next.js
+│   ├── next-env.d.ts
+│   ├── next.config.mjs
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.mjs
+│   ├── README.md             # Este ficheiro
+│   ├── tailwind.config.js
+│   └── tsconfig.json
