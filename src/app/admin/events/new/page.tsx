@@ -4,36 +4,30 @@
 import EventForm, { EventFormData } from '@/components/EventForm';
 import { useRouter } from 'next/navigation';
 
-const STRAPI_URL = 'http://localhost:1337'; // URL do teu Strapi
+const STRAPI_URL = 'http://localhost:1337';
 
 export default function NewEventPage() {
     const router = useRouter();
 
     const handleSaveNewEvent = async (formData: EventFormData, imageFile?: File | null) => {
-        const jwt = localStorage.getItem('jwt'); 
+        const jwt = localStorage.getItem('jwt');
         if (!jwt) {
             router.push('/admin/login');
-            return; 
+            return;
         }
 
         const data = new FormData();
-        data.append('data', JSON.stringify(formData)); 
 
-        if (imageFile) { // Só anexa se um arquivo for selecionado (não é null ou undefined)
-            data.append('files.image', imageFile); 
-        }
+        const eventDataPayload: any = { ...formData };
+        delete eventDataPayload.imageUrl;
 
-        console.log('NewEventPage: FormData a ser enviado para o Strapi:');
-        for (let [key, value] of data.entries()) {
-            if (key === 'data') {
-                try {
-                    console.log(`${key}:`, JSON.parse(value as string));
-                } catch (e) {
-                    console.log(`${key}: ${value}`);
-                }
-            } else {
-                console.log(`${key}: ${value}`);
-            }
+        // O Strapi espera a data no formato ISO 8601 completo para update/create
+        eventDataPayload.date = new Date(eventDataPayload.date).toISOString();
+
+        data.append('data', JSON.stringify(eventDataPayload));
+
+        if (imageFile) {
+            data.append('files.image', imageFile);
         }
 
         try {
@@ -42,14 +36,14 @@ export default function NewEventPage() {
                 headers: {
                     'Authorization': `Bearer ${jwt}`,
                 },
-                body: data, 
+                body: data,
             });
 
             if (!res.ok) {
                 if (res.status === 401 || res.status === 403) {
-                    localStorage.removeItem('jwt'); 
-                    router.push('/admin/login'); 
-                    return; 
+                    localStorage.removeItem('jwt');
+                    router.push('/admin/login');
+                    return;
                 }
                 const errorData = await res.json();
                 console.error("NewEventPage: Erro completo da API ao criar evento:", errorData);
@@ -58,16 +52,16 @@ export default function NewEventPage() {
 
             const responseData = await res.json();
             console.log('NewEventPage: Evento criado com sucesso:', responseData);
-            router.push('/admin/events'); 
+            router.push('/admin/events');
         } catch (err: any) {
             console.error('NewEventPage: Falha ao criar evento (catch principal):', err);
-            throw err; 
+            throw err;
         }
     };
 
     return (
         <div className="admin-new-event-page p-6 bg-white rounded-lg shadow-md">
-            <h1 className="text-3xl font-bold text-[var(--foreground)] mb-6">Adicionar Novo Evento</h1>
+            <h1 className="text-3xl font-bold text-[var(--accent-color)] mb-6">Adicionar Novo Evento</h1>
             <EventForm onSave={handleSaveNewEvent} isEditing={false} />
         </div>
     );

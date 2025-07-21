@@ -1,31 +1,35 @@
 // src/app/admin/inscriptions/page.tsx
-/*'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-// Mantenha apenas o Spinner se desejar, ou substitua por HTML/CSS puro
-import { Spinner } from 'flowbite-react';
-// Ícone para a modal (não é do Flowbite-React, é de react-icons)
-import { HiOutlineExclamationCircle } from 'react-icons/hi';
+import { HiOutlineExclamationCircle } from 'react-icons/hi'; 
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://localhost:1337';
 
 interface Inscricao {
     id: number;
-    attributes: {
-        nome: string;
-        email: string;
-        statusinscricao: 'pending' | 'confirmed' | 'cancelled';
-        createdAt: string;
-        evento: {
-            data: {
-                id: string | number;
-                attributes: {
-                    title: string;
-                };
-            } | null;
-        };
-    };
+    nome: string;
+    email: string;
+    statusInscricao: 'pending' | 'confirmed' | 'cancelled';
+    createdAt: string;
+    updatedAt: string;
+    publishedAt: string;
+    documentId: string;
+    Inscricao: any; 
+    evento: {
+      id: number;
+      documentId: string;
+      createdAt: string;
+      updatedAt: string;
+      publishedAt: string;
+      title: string;
+      description: string;
+      date: string;
+      location: string;
+      totalVagas: number;
+      vagasOcupadas: number;
+    } | null; 
 }
 
 export default function AdminInscriptionsPage() {
@@ -41,6 +45,7 @@ export default function AdminInscriptionsPage() {
     const fetchInscriptions = useCallback(async () => {
         setLoading(true);
         setError(null);
+
         const jwt = typeof window !== 'undefined' ? localStorage.getItem('jwt') : null;
 
         if (!jwt) {
@@ -51,7 +56,7 @@ export default function AdminInscriptionsPage() {
         }
 
         try {
-            const res = await fetch(`${STRAPI_URL}/api/inscricoes?populate=evento`, {
+            const res = await fetch(`${STRAPI_URL}/api/inscricaos?populate=evento`, {
                 headers: {
                     'Authorization': `Bearer ${jwt}`,
                     'Content-Type': 'application/json',
@@ -61,7 +66,7 @@ export default function AdminInscriptionsPage() {
 
             if (!res.ok) {
                 if (res.status === 401 || res.status === 403) {
-                    localStorage.removeItem('jwt'); // Remove token inválido
+                    localStorage.removeItem('jwt');
                     router.push('/admin/login');
                     return;
                 }
@@ -74,7 +79,10 @@ export default function AdminInscriptionsPage() {
             console.log("Dados recebidos para AdminInscriptionsPage:", responseData);
 
             if (responseData.data && Array.isArray(responseData.data)) {
-                setInscriptions(responseData.data as Inscricao[]);
+                setInscriptions(responseData.data.map((item: any) => ({
+                    id: item.id,
+                    ...item // Espalha as propriedades diretamente, assumindo que já estão planas
+                }) as Inscricao));
             } else {
                 setError("Formato de dados inesperado da API. O 'data' payload não é um array para inscrições.");
                 setInscriptions([]);
@@ -94,7 +102,7 @@ export default function AdminInscriptionsPage() {
 
     const handleOpenStatusModal = (inscription: Inscricao) => {
         setSelectedInscription(inscription);
-        setNewStatus(inscription.attributes.statusinscricao);
+        setNewStatus(inscription.statusInscricao);
         setShowModal(true);
     };
 
@@ -103,6 +111,7 @@ export default function AdminInscriptionsPage() {
 
         setLoading(true);
         setError(null);
+
         const jwt = typeof window !== 'undefined' ? localStorage.getItem('jwt') : null;
         if (!jwt) {
             alert('Não autenticado. Por favor, faça login.');
@@ -112,7 +121,7 @@ export default function AdminInscriptionsPage() {
         }
 
         try {
-            const res = await fetch(`${STRAPI_URL}/api/inscricoes/${selectedInscription.id}`, {
+            const res = await fetch(`${STRAPI_URL}/api/inscricaos/${selectedInscription.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -120,7 +129,7 @@ export default function AdminInscriptionsPage() {
                 },
                 body: JSON.stringify({
                     data: {
-                        statusinscricao: newStatus,
+                        statusInscricao: newStatus, 
                     },
                 }),
             });
@@ -140,10 +149,7 @@ export default function AdminInscriptionsPage() {
                 prevInscriptions.map(insc =>
                     insc.id === selectedInscription.id ? {
                         ...insc,
-                        attributes: {
-                            ...insc.attributes,
-                            statusinscricao: newStatus as 'pending' | 'confirmed' | 'cancelled'
-                        }
+                        statusInscricao: newStatus as 'pending' | 'confirmed' | 'cancelled'
                     } : insc
                 )
             );
@@ -160,60 +166,61 @@ export default function AdminInscriptionsPage() {
     };
 
     const filteredInscriptions = inscriptions.filter(insc =>
-        insc.attributes.nome.toLowerCase().includes(filterText.toLowerCase()) ||
-        insc.attributes.email.toLowerCase().includes(filterText.toLowerCase()) ||
-        (insc.attributes.evento?.data?.attributes?.title || '').toLowerCase().includes(filterText.toLowerCase()) ||
-        insc.attributes.statusinscricao.toLowerCase().includes(filterText.toLowerCase())
+        (insc.nome || '').toLowerCase().includes(filterText.toLowerCase()) ||
+        (insc.email || '').toLowerCase().includes(filterText.toLowerCase()) ||
+        (insc.evento?.title || '').toLowerCase().includes(filterText.toLowerCase()) ||
+        (insc.statusInscricao || '').toLowerCase().includes(filterText.toLowerCase())
+    );
+
+    const LoadingSpinner = () => (
+        <div className="flex justify-center items-center min-h-screen">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+            <span className="ml-2 text-xl text-[var(--foreground)]">A carregar inscrições...</span>
+        </div>
+    );
+
+    const ErrorDisplay = () => (
+        <div className="text-center text-red-500 text-lg mt-8">
+            <p>Erro: {error}</p>
+            <button
+                onClick={() => fetchInscriptions()}
+                className="mt-4 px-6 py-3 rounded-md bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] text-white font-semibold transition-colors"
+            >
+                Tentar Novamente
+            </button>
+        </div>
     );
 
     if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Spinner size="xl" />
-                <span className="ml-2 text-xl text-white">A carregar inscrições...</span>
-            </div>
-        );
+        return <LoadingSpinner />;
     }
 
     if (error) {
-        return (
-            <div className="text-center text-red-500 text-lg mt-8">
-                <p>Erro: {error}</p>
-                {/* Botão HTML nativo 
-                <button
-                    onClick={() => fetchInscriptions()}
-                    className="mt-4 px-6 py-3 rounded-md bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] text-white font-semibold transition-colors"
-                >
-                    Tentar Novamente
-                </button>
-            </div>
-        );
+        return <ErrorDisplay />;
     }
 
     return (
-        <div className="container mx-auto p-4 bg-[var(--background)] min-h-screen text-white">
+        <div className="container mx-auto p-4 bg-[var(--background)] min-h-screen text-[var(--foreground)]">
             <h1 className="text-3xl font-bold mb-6 text-center text-[var(--foreground)]">Gerir Inscrições</h1>
 
             <div className="mb-4">
-                {/* TextInput HTML nativo}
                 <input
                     id="filter"
                     type="text"
                     placeholder="Filtrar por nome, email, evento ou status..."
                     value={filterText}
                     onChange={(e) => setFilterText(e.target.value)}
-                    className="w-full p-3 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent"
+                    className="w-full p-3 rounded-md bg-[var(--secondary-background)] border border-[var(--border-color)] text-[var(--foreground)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent"
                 />
             </div>
 
-            {filteredInscriptions.length === 0 && !loading && !error ? (
-                <p className="text-center text-gray-400 text-xl mt-10">Não há inscrições para gerir.</p>
+            {filteredInscriptions.length === 0 ? (
+                <p className="text-center text-[var(--text-muted)] text-xl mt-10">Não há inscrições para gerir.</p>
             ) : (
                 <div className="overflow-x-auto rounded-lg shadow-lg">
-                    {/* Tabela HTML nativa }
-                    <table className="min-w-full bg-[var(--secondary-background)] text-white">
+                    <table className="min-w-full bg-[var(--secondary-background)] text-[var(--foreground)]">
                         <thead>
-                            <tr className="bg-gray-700 text-white uppercase text-sm leading-normal">
+                            <tr className="bg-[var(--header-background)] text-[var(--header-foreground)] uppercase text-sm leading-normal">
                                 <th className="py-3 px-6 text-left">ID</th>
                                 <th className="py-3 px-6 text-left">Nome</th>
                                 <th className="py-3 px-6 text-left">Email</th>
@@ -223,35 +230,34 @@ export default function AdminInscriptionsPage() {
                                 <th className="py-3 px-6 text-center">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-700">
+                        <tbody className="divide-y divide-[var(--border-color)]">
                             {filteredInscriptions.map((insc) => (
-                                <tr key={insc.id} className="border-b border-gray-700 hover:bg-gray-800">
+                                <tr key={insc.id} className="border-b border-[var(--border-color)] hover:bg-[var(--hover-background)]">
                                     <td className="py-3 px-6 text-left whitespace-nowrap font-medium">{insc.id}</td>
-                                    <td className="py-3 px-6 text-left">{insc.attributes.nome}</td>
-                                    <td className="py-3 px-6 text-left">{insc.attributes.email}</td>
+                                    <td className="py-3 px-6 text-left">{insc.nome}</td>
+                                    <td className="py-3 px-6 text-left">{insc.email}</td>
                                     <td className="py-3 px-6 text-left">
-                                        {insc.attributes.evento?.data?.attributes?.title || 'Evento Desconhecido'}
+                                        {insc.evento?.title || 'Evento Desconhecido'}
                                     </td>
                                     <td className="py-3 px-6 text-left">
                                         <span
                                             className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                                insc.attributes.statusinscricao === 'confirmed'
+                                                insc.statusInscricao === 'confirmed'
                                                     ? 'bg-green-600 text-white'
-                                                    : insc.attributes.statusinscricao === 'pending'
+                                                    : insc.statusInscricao === 'pending'
                                                     ? 'bg-yellow-600 text-white'
                                                     : 'bg-red-600 text-white'
                                             }`}
                                         >
-                                            {insc.attributes.statusinscricao.toUpperCase()}
+                                            {insc.statusInscricao.toUpperCase()}
                                         </span>
                                     </td>
                                     <td className="py-3 px-6 text-left whitespace-nowrap text-sm">
-                                        {new Date(insc.attributes.createdAt).toLocaleDateString('pt-PT', {
+                                        {new Date(insc.createdAt).toLocaleDateString('pt-PT', {
                                             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                                         })}
                                     </td>
                                     <td className="py-3 px-6 text-center">
-                                        {/* Botão HTML nativo }
                                         <button
                                             onClick={() => handleOpenStatusModal(insc)}
                                             className="px-4 py-2 text-sm rounded-md bg-[var(--accent-color)] hover:bg-[var(--secondary-accent)] text-white font-medium transition-colors"
@@ -266,34 +272,31 @@ export default function AdminInscriptionsPage() {
                 </div>
             )}
 
-            {/* Modal customizada com Tailwind CSS - Sem Flowbite Modal }
-            {showModal && (
+            {showModal && selectedInscription && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
-                    <div className="bg-gray-800 rounded-lg shadow-xl p-6 m-4 max-w-sm w-full text-white border border-gray-700">
+                    <div className="bg-[var(--secondary-background)] rounded-lg shadow-xl p-6 m-4 max-w-sm w-full text-[var(--foreground)] border border-[var(--border-color)]">
                         <div className="flex justify-end">
-                            {/* Botão de fechar a modal }
-                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-200">
+                            <button onClick={() => setShowModal(false)} className="text-[var(--text-muted)] hover:text-[var(--foreground)]">
                                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
                         <div className="text-center mt-4">
-                            <HiOutlineExclamationCircle className="mx-auto mb-4 h-14 w-14 text-gray-400" />
-                            <h3 className="mb-5 text-lg font-normal text-gray-300">
-                                Tem certeza que deseja alterar o status da inscrição de {selectedInscription?.attributes.nome}?
+                            <HiOutlineExclamationCircle className="mx-auto mb-4 h-14 w-14 text-[var(--text-muted)]" />
+                            <h3 className="mb-5 text-lg font-normal text-[var(--foreground)]">
+                                Tem certeza que deseja alterar o status da inscrição de {selectedInscription.nome}?
                             </h3>
                             <div className="mb-4">
-                                {/* Label e Select HTML nativos }
-                                <label htmlFor="statusSelect" className="block mb-2 text-sm font-medium text-gray-300 text-left">
+                                <label htmlFor="statusSelect" className="block mb-2 text-sm font-medium text-[var(--foreground)] text-left">
                                     Novo Status
                                 </label>
                                 <select
                                     id="statusSelect"
                                     value={newStatus}
-                                    onChange={(e) => setNewStatus(e.target.value as 'pending' | 'confirmed' | 'cancelled')}
+                                    onChange={(e) => setNewStatus(e.target.value)}
                                     required
-                                    className="w-full p-2.5 rounded-md bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent"
+                                    className="w-full p-2.5 rounded-md bg-[var(--background)] border border-[var(--border-color)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent"
                                 >
                                     <option value="pending">PENDING</option>
                                     <option value="confirmed">CONFIRMED</option>
@@ -301,16 +304,24 @@ export default function AdminInscriptionsPage() {
                                 </select>
                             </div>
                             <div className="flex justify-center gap-4 mt-6">
-                                {/* Botões HTML nativos }
                                 <button
                                     onClick={updateInscriptionStatus}
                                     className="px-5 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-800 transition-colors"
+                                    disabled={loading}
                                 >
-                                    Confirmar
+                                    {loading ? (
+                                        <div className="flex items-center">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                                            A Salvar...
+                                        </div>
+                                    ) : (
+                                        'Confirmar'
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="px-5 py-2.5 text-sm font-medium text-gray-900 bg-gray-300 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-400 transition-colors"
+                                    className="px-5 py-2.5 text-sm font-medium text-[var(--foreground)] bg-[var(--button-bg-secondary)] rounded-lg hover:bg-[var(--button-hover-secondary)] focus:outline-none focus:ring-4 focus:ring-[var(--button-ring-secondary)] transition-colors"
+                                    disabled={loading}
                                 >
                                     Cancelar
                                 </button>
@@ -321,4 +332,4 @@ export default function AdminInscriptionsPage() {
             )}
         </div>
     );
-}*/
+}

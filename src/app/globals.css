@@ -6,10 +6,6 @@
   /* MODO CLARO */
   --background: #F0FFF4; /* Um verde-menta muito claro, quase branco */
   --foreground: #2C3E50; /* Azul escuro suave para o texto, moderno */
-
-  /* Podes adicionar mais variáveis para cores de destaque */
-  --accent-color: #8A2BE2; /* Roxo vibrante */
-  --secondary-accent: #20B2AA; /* Verde-Água */
 }
 
 @theme inline {
@@ -26,7 +22,7 @@
     --foreground: #E2E8F0; /* Cinzento claro para o texto no modo escuro */
 
     /* Variáveis de destaque para o modo escuro */
-    --accent-color: #2C3E50; /* Laranja vibrante */
+    --accent-color: #2C3E50;
     --secondary-accent: #2C3E50;
   }
 }

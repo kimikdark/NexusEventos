@@ -1,16 +1,14 @@
-//middlewares.js
-
 module.exports = [
   'strapi::errors',
   'strapi::security',
   {
     name: 'strapi::cors',
     config: {
-      enabled: true,
-      origin: ['http://localhost:3000', 'http://localhost:1337'], 
-      headers: '*',
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      keepHeaderOnError: true,
+      enabled: true, // Garante que CORS está ativado
+      origin: ['http://localhost:3000'/*, 'http://localhost:1337'*/], //URL do seu frontend e do próprio Strapi
+      headers: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+      expose: ['WWW-Authenticate', 'Server-Authorization'], // Expor cabeçalhos adicionais
+      credentials: true, // Permite o envio de cookies de credenciais (útil para sessão, se aplicável)
     },
   },
   'strapi::poweredBy',

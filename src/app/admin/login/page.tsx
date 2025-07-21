@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
   return (
     <section className="flex items-center justify-center min-h-screen bg-[var(--background)]">
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-3xl font-bold text-[var(--foreground)] text-center mb-6">Login do Administrador</h2>
+        <h2 className="text-3xl font-bold text-[var(--accent-color)] text-center mb-6">Login do Administrador</h2>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">Email/Username:</label>
